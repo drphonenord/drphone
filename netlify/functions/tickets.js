@@ -3,7 +3,7 @@
 // Auth POST: header "x-admin-token" == environ var ADMIN_TOKEN
 
 export default async (req, context) => {
-  const { getStore } = await import('@netlify/blobs');
+const { getStore } = await import('@netlify/blobs');
   const store = getStore('drp-tickets');
   const origin = req.headers.get('origin') || '*';
   const cors = {
