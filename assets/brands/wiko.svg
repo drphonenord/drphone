@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Placeholder pour Wiko. Remplacez ce fichier par le logo SVG officiel, en conservant le même nom de fichier. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="120" viewBox="0 0 160 120" role="img" aria-label="Wiko logo">
+
+  <rect x="8" y="8" width="144" height="104" rx="16" fill="#36D1B7" />
+  <text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="18" fill="#fff">Wiko</text>
+</svg>

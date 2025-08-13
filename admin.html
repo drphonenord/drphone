@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin — Suivi réparations</title>
+  <meta name="description" content="Créer et mettre à jour des tickets de réparation (suivi client)." />
+  <style>
+    :root{--fg:#0b1220;--muted:#6b7280;--border:#e5e7eb;--brand:#2563eb;--brand2:#06b6d4;--bg:#f8fafc}
+    *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;color:var(--fg);background:var(--bg)}
+    .container{max-width:980px;margin:0 auto;padding:20px 16px}
+    .card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:16px;margin-top:16px}
+    label{display:block;font-weight:600;margin-top:8px}
+    input,select,textarea{width:100%;padding:10px;border:1px solid var(--border);border-radius:12px}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .btn{display:inline-block;border:1px solid var(--brand);background:linear-gradient(90deg,var(--brand),var(--brand2));color:#fff;padding:10px 16px;border-radius:12px;text-decoration:none;font-weight:700;cursor:pointer}
+    .btn.out{background:#fff;color:var(--brand)}
+    .muted{color:var(--muted)} .small{font-size:.9rem}
+    .list{margin-top:8px}
+    .list-item{padding:8px;border:1px solid var(--border);border-radius:10px;margin-top:6px;background:#fff}
+    .flex{display:flex;gap:8px;flex-wrap:wrap}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Admin — Suivi réparations</h1>
+    <p class="muted small">Annote un ticket et donne le code au client. Il pourra voir l’état sur <a href="/suivi.html">/suivi.html</a>.</p>
+
+    <div class="card">
+      <div class="row">
+        <div>
+          <label>Clé admin (une fois pour toutes)</label>
+          <input id="token" placeholder="Ton token admin" />
+          <button class="btn out" id="saveToken" style="margin-top:8px">Enregistrer</button>
+          <p class="muted small">À créer dans Netlify → Site settings → Environment variables → <strong>ADMIN_TOKEN</strong>.</p>
+        </div>
+        <div>
+          <label>Charger un ticket par code</label>
+          <div class="flex">
+            <input id="searchCode" placeholder="DRP-2025-123" />
+            <button class="btn out" id="loadBtn">Charger</button>
+            <button class="btn out" id="listBtn">Lister 20 derniers</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <div><label>Code (laisser vide pour auto)</label><input id="code" placeholder="DRP-2025-123" /></div>
+        <div><label>Statut</label>
+          <select id="status">
+            <option>Réceptionné</option>
+            <option>En diagnostic</option>
+            <option>En cours</option>
+            <option>Pièce en commande</option>
+            <option>En test</option>
+            <option>Prêt · à restituer</option>
+            <option>Restitué</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div><label>Modèle</label><input id="model" placeholder="iPhone 13 / Galaxy S21..." /></div>
+        <div><label>Client</label><input id="client" placeholder="Initiales (ex. L.M.)" /></div>
+      </div>
+      <label>Note</label><textarea id="note" rows="4" placeholder="Détails utiles..."></textarea>
+      <div class="flex" style="margin-top:10px">
+        <button class="btn" id="saveBtn">Enregistrer / Mettre à jour</button>
+        <button class="btn out" id="newBtn">Nouveau code</button>
+        <a class="btn out" id="linkSuivi" target="_blank">Lien suivi client</a>
+        <button class="btn out" id="printBtn">Imprimer la fiche</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="font-weight:700">Derniers tickets</div>
+      <div id="list" class="list"></div>
+    </div>
+  </div>
+
+  <script>
+    const FN = '/.netlify/functions/tickets';
+    const $ = (id)=>document.getElementById(id);
+    const token = localStorage.getItem('drp_admin_token') || '';
+    if(token) $('token').value = token;
+
+    $('saveToken').onclick = ()=>{
+      localStorage.setItem('drp_admin_token', $('token').value.trim());
+      alert('Token enregistré localement.');
+    };
+
+    function fillForm(item){
+      $('code').value = item.code||'';
+      $('status').value = item.status||'En cours';
+      $('model').value = item.model||'';
+      $('client').value = item.client||'';
+      $('note').value = item.note||'';
+      $('linkSuivi').href = '/suivi.html#'+ encodeURIComponent(item.code||'');
+      $('linkSuivi').textContent = 'Lien suivi client ('+(item.code||'')+')';
+    }
+
+    $('loadBtn').onclick = async ()=>{
+      const id = $('searchCode').value.trim();
+      if(!id) return;
+      const r = await fetch(FN+'?id='+encodeURIComponent(id)); const j = await r.json();
+      if(!r.ok){ alert('Introuvable'); return; }
+      fillForm(j);
+    };
+
+    $('listBtn').onclick = async ()=>{
+      const r = await fetch(FN); const j = await r.json();
+      const list = $('list'); list.innerHTML='';
+      (j.items||[]).slice(0,20).forEach(it=>{
+        const d = document.createElement('div'); d.className='list-item';
+        d.textContent = (it.updated||'')+' — '+(it.code||'')+' — '+(it.status||'');
+        d.onclick = ()=> fillForm(it);
+        list.appendChild(d);
+      });
+    };
+
+    
+    $('newBtn').onclick = async ()=>{
+      const t = localStorage.getItem('drp_admin_token') || $('token').value.trim();
+      if(!t){ alert('Renseigne ton token admin.'); return; }
+      const payload = { status:'Réceptionné', model:'', client:'', note:'' };
+      const r = await fetch(FN, { method:'POST', headers:{'Content-Type':'application/json','x-admin-token':t}, body:JSON.stringify(payload) });
+      const j = await r.json();
+      if(!r.ok || !j.ok){ alert('Erreur: '+(j.error||r.status)); return; }
+      fillForm(j.item);
+      // Ouvrir la fiche client imprimable
+      const url = '/ticket.html?code='+encodeURIComponent(j.item.code||'');
+      window.open(url, '_blank');
+    };
+
+    $('saveBtn').onclick = async ()=>{
+      const t = localStorage.getItem('drp_admin_token') || $('token').value.trim();
+      if(!t){ alert('Renseigne ton token admin.'); return; }
+      const payload = {
+        code:$('code').value.trim(),
+        status:$('status').value,
+        model:$('model').value.trim(),
+        client:$('client').value.trim(),
+        note:$('note').value.trim(),
+      };
+      const r = await fetch(FN, { method:'POST', headers:{'Content-Type':'application/json','x-admin-token':t}, body:JSON.stringify(payload) });
+      const j = await r.json();
+      if(!r.ok || !j.ok){ alert('Erreur: '+(j.error||r.status)); return; }
+      fillForm(j.item);
+      document.getElementById('printBtn').onclick = ()=>{ window.open('/ticket.html?code='+encodeURIComponent(($('code').value||'')),'_blank'); };
+      alert('Enregistré.');
+    };
+
+    // Auto list on load
+    $('listBtn').click();
+  </script>
+</body>
+</html>

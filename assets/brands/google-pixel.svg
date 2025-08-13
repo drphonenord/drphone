@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Placeholder pour Google Pixel. Remplacez ce fichier par le logo SVG officiel, en conservant le même nom de fichier. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="120" viewBox="0 0 160 120" role="img" aria-label="Google Pixel logo">
+<defs>
+  <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#4285F4"/>
+    <stop offset="33%" stop-color="#34A853"/>
+    <stop offset="66%" stop-color="#FBBC05"/>
+    <stop offset="100%" stop-color="#EA4335"/>
+  </linearGradient>
+</defs>
+  <rect x="8" y="8" width="144" height="104" rx="16" fill="url(#g)" />
+  <text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="18" fill="#fff">Google Pixel</text>
+</svg>
