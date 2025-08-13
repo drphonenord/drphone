@@ -1,6 +1,6 @@
-// Netlify Function: tickets (GET for public read, POST for admin write)
+// Netlify Function: tickets (GET read public, POST write admin)
 // Storage: Netlify Blobs "@netlify/blobs"
-// Auth: header "x-admin-token" must match environment var ADMIN_TOKEN for writes.
+// Auth POST: header "x-admin-token" == environ var ADMIN_TOKEN
 
 export default async (req, context) => {
   const { getStore } = await import('@netlify/blobs');
@@ -24,14 +24,13 @@ export default async (req, context) => {
         if (!val) return new Response(JSON.stringify({ ok:false, error:'not_found' }), { status: 404, headers: { ...cors, 'Content-Type':'application/json' } });
         return new Response(val, { status: 200, headers: { ...cors, 'Content-Type':'application/json' } });
       }
-      // list recent
-      const { blobs } = await store.list({ prefix: '', cursor: undefined, limit: 100 });
+      const { blobs } = await store.list({ limit: 100 });
       const items = [];
       for (const b of blobs) {
         const v = await store.get(b.key);
         try { items.push(JSON.parse(v)); } catch { items.push({ code:b.key }); }
       }
-      items.sort((a,b)=> (b.updated||'').localeCompare(a.updated||''));
+      items.sort((a,b)=> (b.updated||'').localeCompare(a.updated||'')); // récents d'abord
       return new Response(JSON.stringify({ ok:true, items }), { status:200, headers: { ...cors, 'Content-Type':'application/json' } });
     }
 
@@ -44,22 +43,21 @@ export default async (req, context) => {
       const body = await req.json().catch(()=>null);
       if (!body) return new Response(JSON.stringify({ ok:false, error:'invalid_json' }), { status:400, headers: { ...cors, 'Content-Type':'application/json' } });
 
-      // Generate code if empty
       let code = (body.code || '').trim();
       if (!code) {
         const now = new Date();
         const yy = now.getFullYear();
-        const rnd = Math.floor(Math.random()*900)+100; // 3 digits
+        const rnd = Math.floor(Math.random()*900)+100;
         code = `DRP-${yy}-${rnd}`;
       }
 
       const payload = {
         code,
-        status: body.status || 'En cours',
+        status: body.status || 'Réceptionné',
         model: body.model || '',
         client: body.client || '',
         note: body.note || '',
-        updated: body.updated || new Date().toISOString().slice(0,16).replace('T',' '),
+        updated: new Date().toISOString().slice(0,16).replace('T',' '),
       };
 
       await store.set(code, JSON.stringify(payload));
