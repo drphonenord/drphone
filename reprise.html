@@ -1,293 +1,206 @@
 <!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Reprise smartphone — Estimation (tarifs internes)</title>
-  <meta name="description" content="Estimation de reprise basée sur vos tarifs internes (admin), ajustée selon l'état. Mode Pro pour la négo.">
-  <style>
-    :root{--fg:#0b1220;--muted:#6b7280;--border:#e5e7eb;--brand:#2563eb;--brand2:#06b6d4;--bg:#f8fafc;--danger:#ef4444;--ok:#16a34a}
-    *{box-sizing:border-box}
-    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;color:var(--fg);background:var(--bg)}
-    .container{max-width:980px;margin:0 auto;padding:24px 16px}
-    h1{margin:0 0 8px}
-    .muted{color:var(--muted)}
-    .card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:16px;margin-top:16px}
-    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
-    label{font-weight:600;display:block;margin-bottom:6px}
-    select,input[type=text]{width:100%;padding:10px;border:1px solid var(--border);border-radius:12px}
-    .checkgroup{display:flex;flex-wrap:wrap;gap:10px}
-    .chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);padding:8px 10px;border-radius:999px;background:#fff}
-    .chip input{margin:0}
-    .btn{display:inline-block;border:1px solid var(--brand);background:linear-gradient(90deg,var(--brand),var(--brand2));color:#fff;padding:12px 16px;border-radius:12px;font-weight:700;cursor:pointer;text-decoration:none}
-    .btn.ghost{background:#fff;color:var(--brand)}
-    .result{display:none}
-    .price{font-size:28px;font-weight:800}
-    .danger{color:var(--danger);font-weight:700}
-    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .hint{font-size:.9rem;color:var(--muted)}
-    .src{font-size:.9rem;color:var(--muted);margin-top:6px}
-    .pro{display:none;margin-top:10px;border-top:1px dashed var(--border);padding-top:10px}
-    .pill{display:inline-block;padding:6px 10px;border-radius:999px;background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe}
-    @media (max-width:780px){.row,.row3,.grid2{grid-template-columns:1fr}}
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Reprise — Mode Pro</title>
+<style>
+  :root{--fg:#0b1220;--muted:#6b7280;--border:#e5e7eb;--brand:#2563eb;--bg:#f8fafc}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;color:var(--fg);background:var(--bg)}
+  .container{max-width:1000px;margin:0 auto;padding:20px 16px}
+  .card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:16px;margin-top:16px}
+  label{display:block;margin:8px 0 4px}
+  select,input{width:100%;padding:8px;border:1px solid var(--border);border-radius:10px}
+  .grid{display:grid;gap:12px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:1fr 1fr 1fr}
+  .muted{color:var(--muted)}
+  .result{font-size:1.25rem;font-weight:800}
+  .pill{display:inline-block;padding:6px 10px;border:1px solid var(--border);border-radius:999px;margin-right:6px}
+</style>
 </head>
 <body>
-  <div class="container">
-    <h1>Reprise smartphone — estimation</h1>
-    <p class="muted">Base tarifaire issue de vos <b>tarifs internes</b> (admin), au format <span class="pill">marque → modèle → stockage</span>. <span class="pill">Mode Pro</span> affiche l’offre d’ouverture et le plafond.</p>
+<div class="container">
+  <h1>Estimation Reprise — Mode Pro</h1>
+  <p class="muted">Règle : <b>plafond = médiane ajustée</b>, <b>ouverture = plafond −10%</b>. Les décotes s’appliquent avant.</p>
 
-    <div class="card">
-      <div class="row">
-        <div>
-          <label>Marque</label>
-          <select id="brand"></select>
-        </div>
-        <div>
-          <label>Modèle</label>
-          <select id="model"></select>
-        </div>
+  <!-- Sélection appareil -->
+  <div class="card">
+    <h3>Appareil</h3>
+    <div class="grid g3">
+      <div>
+        <label>Marque</label>
+        <select id="brand"></select>
       </div>
-      <div class="row">
-        <div>
-          <label>Stockage (Go)</label>
-          <select id="storage"></select>
-        </div>
-        <div>
-          <label>Couleur (optionnel)</label>
-          <input id="color" type="text" placeholder="Ex. Noir, Bleu..." />
-        </div>
+      <div>
+        <label>Modèle</label>
+        <select id="model"></select>
       </div>
-      <div class="src" id="srcinfo">Source prix: interne (API)</div>
-    </div>
-
-    <div class="card">
-      <div class="row3">
-        <div>
-          <label>Écran</label>
-          <select id="screen">
-            <option value="ok">Comme neuf / OK</option>
-            <option value="micros">Micro‑rayures</option>
-            <option value="fissure">Fissuré (léger)</option>
-            <option value="brise">Brisé / affichage HS</option>
-          </select>
-        </div>
-        <div>
-          <label>Châssis / coque</label>
-          <select id="body">
-            <option value="ok">OK</option>
-            <option value="usure">Usure / griffes</option>
-            <option value="tordu">Tordu / fissure châssis</option>
-          </select>
-        </div>
-        <div>
-          <label>Oxydation / liquide</label>
-          <select id="water">
-            <option value="non">Non</option>
-            <option value="leger">Oui, léger</option>
-            <option value="fort">Oui, fort (oxydation)</option>
-          </select>
-        </div>
-      </div>
-      <div style="margin-top:12px">
-        <label>Fonctions avec défaut (coche si concerné)</label>
-        <div class="checkgroup">
-          <label class="chip"><input type="checkbox" class="def" value="faceid"> FaceID / TouchID</label>
-          <label class="chip"><input type="checkbox" class="def" value="battery"> Batterie faible</label>
-          <label class="chip"><input type="checkbox" class="def" value="camera"> Caméra</label>
-          <label class="chip"><input type="checkbox" class="def" value="speaker"> Haut‑parleur / micro</label>
-          <label class="chip"><input type="checkbox" class="def" value="charge"> Charge / connecteur</label>
-          <label class="chip"><input type="checkbox" class="def" value="network"> Réseau / Wi‑Fi / GPS</label>
-          <label class="chip"><input type="checkbox" class="def" value="buttons"> Boutons</label>
-          <label class="chip"><input type="checkbox" class="def" value="other"> Autre</label>
-        </div>
-      </div>
-      <div class="row" style="margin-top:12px">
-        <div>
-          <label>Compte iCloud / Google</label>
-          <select id="lock">
-            <option value="off">Supprimé / déconnecté</option>
-            <option value="on">Encore associé / verrouillé</option>
-          </select>
-          <div class="hint">Si activé : appareil non reprenable (sécurité).</div>
-        </div>
-        <div>
-          <label>Accessoires (optionnel)</label>
-          <select id="acc">
-            <option value="none">Sans accessoires</option>
-            <option value="chargeur">Chargeur / câble</option>
-            <option value="boite">Boîte + accessoires</option>
-          </select>
-        </div>
+      <div>
+        <label>Stockage (Go)</label>
+        <select id="storage"></select>
       </div>
     </div>
-
-    <div class="card">
-      <div class="grid2">
-        <div>
-          <button class="btn" id="calc">Calculer l’estimation</button>
-          <label class="chip" style="margin-left:8px"><input type="checkbox" id="pro"> Mode Pro</label>
-          <div id="warn" class="muted" style="margin-top:8px"></div>
-        </div>
-        <div class="result" id="result">
-          <div class="muted">Estimation de reprise</div>
-          <div class="price" id="price">—</div>
-          <div class="hint" id="basedetail">—</div>
-          <div class="pro" id="probox">
-            <div class="muted">Repères négociation</div>
-            <div><b>Offre d’ouverture</b> (à proposer) : <span class="price" id="offerOpen">—</span></div>
-            <div><b>Plafond à ne pas dépasser</b> : <span class="price" id="offerMax">—</span></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <h3>Recevoir une offre ferme / prendre RDV</h3>
-      <p class="muted">Envoie ta demande. On confirme par e‑mail avec le prix ferme et un créneau.</p>
-      <form name="reprise" method="POST" data-netlify="true" netlify-honeypot="bot-field">
-        <input type="hidden" name="form-name" value="reprise" />
-        <input type="hidden" name="estimation" id="field_estimation" />
-        <input type="hidden" name="resume" id="field_resume" />
-        <div style="display:none">
-          <label>Ne pas remplir si humain <input name="bot-field" /></label>
-        </div>
-        <div class="row">
-          <div><label>Nom / Prénom*</label><input required name="nom" id="nom" /></div>
-          <div><label>Téléphone*</label><input required name="tel" id="tel" /></div>
-        </div>
-        <div class="row">
-          <div><label>E‑mail*</label><input required type="email" name="email" id="email" /></div>
-          <div><label>Ville (optionnel)</label><input name="ville" id="ville" /></div>
-        </div>
-        <div class="row">
-          <div><label>Commentaire (optionnel)</label><input name="commentaire" id="commentaire" placeholder="Couleur, état précis, etc." /></div>
-          <div style="display:flex;align-items:flex-end;gap:8px">
-            <button class="btn" type="submit">Envoyer la demande</button>
-            <a class="btn ghost" href="/#rdv">Prendre RDV en ligne</a>
-          </div>
-        </div>
-        <div class="hint" style="margin-top:6px">*Champs obligatoires. Notification par e‑mail via Netlify Forms.</div>
-      </form>
-    </div>
-
-    <p class="muted" style="margin-top:10px">⚖️ L’estimation est indicative et dépend d’un contrôle visuel et fonctionnel en boutique.</p>
+    <p class="muted" id="baseInfo">Médiane de base : —</p>
   </div>
 
+  <!-- État & défauts -->
+  <div class="card">
+    <h3>État</h3>
+    <div class="grid g3">
+      <div>
+        <label>Écran</label>
+        <select id="screen">
+          <option value="ok">OK</option>
+          <option value="micro">Micro-rayures</option>
+          <option value="fissure">Fissure</option>
+          <option value="broken">Cassé</option>
+        </select>
+      </div>
+      <div>
+        <label>Châssis</label>
+        <select id="frame">
+          <option value="ok">OK</option>
+          <option value="wear">Usé / coin marqué</option>
+          <option value="bent">Tordu</option>
+        </select>
+      </div>
+      <div>
+        <label>Liquide</label>
+        <select id="liquid">
+          <option value="none">Aucun</option>
+          <option value="light">Suspicion légère</option>
+          <option value="heavy">Contact avéré</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="margin-top:12px">
+      <label>Défauts additionnels (coche ce qui s’applique)</label>
+      <div>
+        <label class="pill"><input type="checkbox" class="defect" value="spk"> Haut-parleur</label>
+        <label class="pill"><input type="checkbox" class="defect" value="mic"> Micro</label>
+        <label class="pill"><input type="checkbox" class="defect" value="cam"> Caméra</label>
+        <label class="pill"><input type="checkbox" class="defect" value="btn"> Boutons</label>
+        <label class="pill"><input type="checkbox" class="defect" value="bat"> Batterie HS</label>
+      </div>
+    </div>
+
+    <div style="margin-top:12px">
+      <label class="pill"><input type="checkbox" id="locked"> Compte verrouillé / FMI on (non reprenable)</label>
+    </div>
+  </div>
+
+  <!-- Résultat -->
+  <div class="card">
+    <h3>Résultat</h3>
+    <div id="res" class="result">—</div>
+    <p class="muted" id="detail">Décotes appliquées : —</p>
+  </div>
+</div>
+
 <script>
-const API='/.netlify/functions/prices';
-const $=id=>document.getElementById(id);
-let PRICE_MAP = {}; // {brand:{model:{storage:price}}}
-
-function round5(x){ return Math.max(0, Math.round(x/5)*5); }
-
-const DEDUCS = {
-  screen:{ ok:0, micros:0.05, fissure:0.20, brise:0.50 },
-  body:  { ok:0, usure:0.05, tordu:0.15 },
-  water: { non:0, leger:0.20, fort:'n/a' },
-  lock:  { off:0, on:'n/a' },
-  defs:  { faceid:0.15, battery:0.10, camera:0.07, speaker:0.05, charge:0.08, network:0.07, buttons:0.03, other:0.05 }
+// === Paramètres décotes (ajuste si besoin) ===
+const DEDUCT = {
+  screen: { ok: 0, micro: 0.05, fissure: 0.15, broken: 0.40 },
+  frame:  { ok: 0, wear: 0.05, bent: 0.20 },
+  liquid: { none: 0, light: 0.10, heavy: 0.30 },
+  defectsEach: 0.05
 };
+// =============================================
 
-function fillBrands(){
-  const brands = Object.keys(PRICE_MAP).sort();
-  $('brand').innerHTML = brands.map(b=>`<option>${b}</option>`).join('');
-  if(!brands.length){ $('brand').innerHTML = '<option>Apple</option>'; }
-  fillModels();
+const FN = "/.netlify/functions/prices";
+const $ = s => document.querySelector(s);
+
+let PRICES = {}; // structure { Brand: { Model: { Storage: {min,max} } } }
+
+const median = (min,max) => (Number(min)+Number(max))/2;
+const eur = x => Math.max(0, Math.round(x));
+
+async function loadPrices(){
+  const r = await fetch(FN);
+  PRICES = await r.json() || {};
+  fillSelectors();
+  compute();
 }
-function fillModels(){
-  const b = $('brand').value;
-  const models = PRICE_MAP[b] ? Object.keys(PRICE_MAP[b]).sort() : ['Modèle générique'];
-  $('model').innerHTML = models.map(m=>`<option>${m}</option>`).join('');
-  fillStorage();
-}
-function fillStorage(){
-  const b = $('brand').value, m = $('model').value;
-  const stor = (PRICE_MAP[b] && PRICE_MAP[b][m]) ? Object.keys(PRICE_MAP[b][m]).map(n=>Number(n)).sort((a,b)=>a-b) : [64,128,256,512];
-  $('storage').innerHTML = stor.map(n=>`<option value="${n}">${n} Go</option>`).join('');
+
+function fillSelectors(){
+  const b = $('#brand'), m = $('#model'), s = $('#storage');
+  // brand
+  b.innerHTML = Object.keys(PRICES).sort().map(x=>`<option>${x}</option>`).join('') || '<option>—</option>';
+  // model
+  const brand = b.value || Object.keys(PRICES)[0];
+  const models = brand ? Object.keys(PRICES[brand] || {}).sort() : [];
+  m.innerHTML = models.map(x=>`<option>${x}</option>`).join('') || '<option>—</option>';
+  // storage
+  const model = m.value || models[0];
+  const storages = (PRICES[brand] && PRICES[brand][model]) ? Object.keys(PRICES[brand][model]).sort((a,b)=>+a-+b) : [];
+  s.innerHTML = storages.map(x=>`<option>${x}</option>`).join('') || '<option>—</option>';
+  updateBaseInfo();
 }
 
 function getBase(){
-  const b=$('brand').value, m=$('model').value, s=String(Number($('storage').value));
-  const base = (PRICE_MAP[b] && PRICE_MAP[b][m] && PRICE_MAP[b][m][s]) ? Number(PRICE_MAP[b][m][s]) : 0;
-  return { base, detail: base? 'tarifs internes (admin)' : 'non référencé' };
+  const brand = $('#brand').value;
+  const model = $('#model').value;
+  const storage = $('#storage').value;
+  try { return { brand, model, storage, ...PRICES[brand][model][storage] }; }
+  catch { return null; }
+}
+
+function updateBaseInfo(){
+  const base = getBase();
+  if(!base){ $('#baseInfo').textContent = 'Médiane de base : —'; return; }
+  const med = eur(median(base.min, base.max));
+  $('#baseInfo').textContent = `Médiane de base : ${med} € (min ${base.min} / max ${base.max})`;
 }
 
 function compute(){
-  const { base, detail } = getBase();
-  if(!base) return {ok:false, msg:'Modèle/stockage non référencé'};
-  if(DEDUCS.lock[$('lock').value] === 'n/a') return {ok:true, price:0, detail, reason:'verrouillage iCloud/Google'};
-  if(DEDUCS.water[$('water').value] === 'n/a') return {ok:true, price:0, detail, reason:'oxydation forte'};
-  let perc = 0;
-  perc += DEDUCS.screen[$('screen').value] || 0;
-  perc += DEDUCS.body[$('body').value] || 0;
-  perc += DEDUCS.water[$('water').value] || 0;
-  document.querySelectorAll('.def:checked').forEach(cb=> perc += (DEDUCS.defs[cb.value]||0));
-  if(perc > 0.85) perc = 0.85;
-  let est = base * (1 - perc);
-  const acc = $('acc').value; if(acc==='chargeur') est += 5; if(acc==='boite') est += 10;
-  const low = round5(est * 0.90);
-  const high = round5(est * 1.10);
-  est = round5(est);
-  return {ok:true, price:est, low, high, base, detail};
-}
+  const base = getBase();
+  if(!base){ $('#res').textContent = 'Aucun tarif interne pour cette config.'; $('#detail').textContent='—'; return; }
 
-function summary(){
-  const b=$('brand').value, m=$('model').value, s=$('storage').value+' Go';
-  const screen=$('screen').selectedOptions[0].text;
-  const body=$('body').selectedOptions[0].text;
-  const water=$('water').selectedOptions[0].text;
-  const lock=$('lock').selectedOptions[0].text;
-  const color=$('color').value||'—';
-  const acc=$('acc').selectedOptions[0].text;
-  const defs=[...document.querySelectorAll('.def:checked')].map(x=>x.parentElement.textContent.trim()).join(', ')||'—';
-  return `Modèle: ${b} ${m} ${s} | Couleur: ${color} | Écran: ${screen} | Châssis: ${body} | Défauts: ${defs} | Oxydation: ${water} | Compte: ${lock} | Accessoires: ${acc}`;
-}
+  const cond = {
+    screen: $('#screen').value,
+    frame:  $('#frame').value,
+    liquid: $('#liquid').value,
+    defects: [...document.querySelectorAll('.defect:checked')].map(x=>x.value),
+    locked:  $('#locked').checked
+  };
 
-async function init(){
-  // Récupère la carte des prix
-  const r = await fetch(API);
-  const j = await r.json();
-  PRICE_MAP = (j.map||{});
-  document.getElementById('srcinfo').textContent = 'Source prix: interne (API) — '+(j.count||0)+' entrées';
-  fillBrands();
-}
-
-document.getElementById('calc').addEventListener('click', ()=>{
-  const r = compute();
-  const pro = document.getElementById('pro').checked;
-  const result = document.getElementById('result');
-  const warn = document.getElementById('warn');
-  result.style.display='block';
-  if(!r.ok){
-    document.getElementById('price').innerHTML = '<span class="danger">—</span>';
-    document.getElementById('basedetail').textContent = r.msg || '—';
-    warn.innerHTML = '<span class="danger">Complète le modèle / stockage.</span>';
-    document.getElementById('probox').style.display = pro ? 'block' : 'none';
+  if (cond.locked){
+    $('#res').textContent = 'Non reprenable (compte/verrouillage actif).';
+    $('#detail').textContent = 'Décotes appliquées : verrouillage';
     return;
   }
-  if(r.price===0 && r.reason){
-    document.getElementById('price').innerHTML = '<span class="danger">Non reprenable</span>';
-    document.getElementById('basedetail').textContent = r.detail;
-    warn.innerHTML = 'Motif: '+r.reason+'. Si désactivation compte / traitement oxydation, on réévalue.';
-    document.getElementById('probox').style.display = pro ? 'block' : 'none';
-    if(pro){ document.getElementById('offerOpen').textContent='—'; document.getElementById('offerMax').textContent='—'; }
-  } else {
-    document.getElementById('price').textContent = `${r.low}–${r.high} €`;
-    document.getElementById('basedetail').textContent = 'Base ' + r.base + ' € ('+r.detail+'), ajustée état.';
-    warn.textContent = 'Proposition indicative — contrôle en boutique.';
-    document.getElementById('probox').style.display = pro ? 'block' : 'none';
-    if(pro){
-      document.getElementById('offerOpen').textContent = r.low + ' €';
-      document.getElementById('offerMax').textContent  = r.price + ' €';
-    }
-  }
-  document.getElementById('field_estimation').value = document.getElementById('price').textContent;
-  document.getElementById('field_resume').value = summary();
+
+  const m = median(base.min, base.max);
+  const d1 = DEDUCT.screen[cond.screen] || 0;
+  const d2 = DEDUCT.frame[cond.frame]   || 0;
+  const d3 = DEDUCT.liquid[cond.liquid] || 0;
+  const dN = (cond.defects || []).length * DEDUCT.defectsEach;
+
+  const total = d1 + d2 + d3 + dN;
+  const medAdj = m * (1 - total);
+
+  const ceiling  = eur(medAdj);           // médiane ajustée
+  const opening  = eur(medAdj * 0.90);    // -10% ouverture
+
+  $('#res').textContent = `Ouverture : ${opening} €   |   Plafond : ${ceiling} €`;
+  $('#detail').textContent = `Décotes appliquées : écran=${(d1*100)|0}% ; châssis=${(d2*100)|0}% ; liquide=${(d3*100)|0}% ; défauts x${cond.defects.length} = ${(dN*100)|0}%  → total ${(total*100).toFixed(0)}%`;
+}
+
+['#brand','#model','#storage','#screen','#frame','#liquid','#locked'].forEach(sel=>{
+  document.addEventListener('change', e=>{ if(e.target.matches(sel)) { if(sel!=='#brand'&&sel!=='#model') compute(); }});
+});
+document.addEventListener('change', e=>{
+  if(e.target.matches('#brand')) { fillSelectors(); compute(); }
+  if(e.target.matches('#model')) { fillSelectors(); compute(); }
+});
+document.addEventListener('click', e=>{
+  if(e.target.classList && e.target.classList.contains('defect')) compute();
 });
 
-init();
+loadPrices();
 </script>
 </body>
 </html>
