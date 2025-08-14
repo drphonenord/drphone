@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Reprise — Mode Pro</title>
+<title>Reprise — Mode Pro (états ou min/max)</title>
 <style>
   :root{--fg:#0b1220;--muted:#6b7280;--border:#e5e7eb;--brand:#2563eb;--bg:#f8fafc}
   *{box-sizing:border-box}
@@ -13,7 +13,6 @@
   label{display:block;margin:8px 0 4px}
   select,input{width:100%;padding:8px;border:1px solid var(--border);border-radius:10px}
   .grid{display:grid;gap:12px}
-  .g2{grid-template-columns:1fr 1fr}
   .g3{grid-template-columns:1fr 1fr 1fr}
   .muted{color:var(--muted)}
   .result{font-size:1.25rem;font-weight:800}
@@ -22,35 +21,32 @@
 </head>
 <body>
 <div class="container">
-  <h1>Estimation Reprise — Mode Pro</h1>
-  <p class="muted">Règle : <b>plafond = médiane ajustée</b>, <b>ouverture = plafond −10%</b>. Les décotes s’appliquent avant.</p>
+  <h1>Estimation Reprise</h1>
+  <p class="muted">Utilise <b>prix par état</b> s’ils existent, sinon <b>min/max</b> avec Mode Pro (plafond = médiane ajustée, ouverture = -10%).</p>
 
-  <!-- Sélection appareil -->
   <div class="card">
     <h3>Appareil</h3>
     <div class="grid g3">
-      <div>
-        <label>Marque</label>
-        <select id="brand"></select>
-      </div>
-      <div>
-        <label>Modèle</label>
-        <select id="model"></select>
-      </div>
-      <div>
-        <label>Stockage (Go)</label>
-        <select id="storage"></select>
-      </div>
+      <div><label>Marque</label><select id="brand"></select></div>
+      <div><label>Modèle</label><select id="model"></select></div>
+      <div><label>Stockage (Go)</label><select id="storage"></select></div>
     </div>
-    <p class="muted" id="baseInfo">Médiane de base : —</p>
+    <p class="muted" id="baseInfo">Base : —</p>
   </div>
 
-  <!-- État & défauts -->
   <div class="card">
     <h3>État</h3>
     <div class="grid g3">
-      <div>
-        <label>Écran</label>
+      <div><label>État global</label>
+        <select id="etat">
+          <option value="neuf">Neuf</option>
+          <option value="tb">Très bon</option>
+          <option value="bon">Bon</option>
+          <option value="moyen">Moyen</option>
+          <option value="casse">Cassé</option>
+        </select>
+      </div>
+      <div><label>Écran (si Mode Pro)</label>
         <select id="screen">
           <option value="ok">OK</option>
           <option value="micro">Micro-rayures</option>
@@ -58,149 +54,130 @@
           <option value="broken">Cassé</option>
         </select>
       </div>
-      <div>
-        <label>Châssis</label>
+      <div><label>Châssis (si Mode Pro)</label>
         <select id="frame">
           <option value="ok">OK</option>
-          <option value="wear">Usé / coin marqué</option>
+          <option value="wear">Usé</option>
           <option value="bent">Tordu</option>
         </select>
       </div>
-      <div>
-        <label>Liquide</label>
+    </div>
+    <div class="grid g3" style="margin-top:12px">
+      <div><label>Liquide (si Mode Pro)</label>
         <select id="liquid">
           <option value="none">Aucun</option>
-          <option value="light">Suspicion légère</option>
-          <option value="heavy">Contact avéré</option>
+          <option value="light">Suspicion</option>
+          <option value="heavy">Contact</option>
         </select>
       </div>
-    </div>
-
-    <div style="margin-top:12px">
-      <label>Défauts additionnels (coche ce qui s’applique)</label>
-      <div>
-        <label class="pill"><input type="checkbox" class="defect" value="spk"> Haut-parleur</label>
-        <label class="pill"><input type="checkbox" class="defect" value="mic"> Micro</label>
-        <label class="pill"><input type="checkbox" class="defect" value="cam"> Caméra</label>
-        <label class="pill"><input type="checkbox" class="defect" value="btn"> Boutons</label>
-        <label class="pill"><input type="checkbox" class="defect" value="bat"> Batterie HS</label>
-      </div>
-    </div>
-
-    <div style="margin-top:12px">
-      <label class="pill"><input type="checkbox" id="locked"> Compte verrouillé / FMI on (non reprenable)</label>
+      <div><label class="pill"><input type="checkbox" id="locked"> Verrouillage/FMI</label></div>
+      <div></div>
     </div>
   </div>
 
-  <!-- Résultat -->
   <div class="card">
     <h3>Résultat</h3>
     <div id="res" class="result">—</div>
-    <p class="muted" id="detail">Décotes appliquées : —</p>
+    <p class="muted" id="detail">—</p>
   </div>
 </div>
 
 <script>
-// === Paramètres décotes (ajuste si besoin) ===
+const FN_MINMAX = "/.netlify/functions/prices";
+const FN_STATES = "/.netlify/functions/prices_states";
 const DEDUCT = {
   screen: { ok: 0, micro: 0.05, fissure: 0.15, broken: 0.40 },
   frame:  { ok: 0, wear: 0.05, bent: 0.20 },
   liquid: { none: 0, light: 0.10, heavy: 0.30 },
   defectsEach: 0.05
 };
-// =============================================
-
-const FN = "/.netlify/functions/prices";
 const $ = s => document.querySelector(s);
-
-let PRICES = {}; // structure { Brand: { Model: { Storage: {min,max} } } }
+let LIVE = {};   // min/max
+let STATES = {}; // per-state
 
 const median = (min,max) => (Number(min)+Number(max))/2;
 const eur = x => Math.max(0, Math.round(x));
 
-async function loadPrices(){
-  const r = await fetch(FN);
-  PRICES = await r.json() || {};
+async function loadAll(){
+  const r1 = await fetch(FN_MINMAX); LIVE = await r1.json() || {};
+  const r2 = await fetch(FN_STATES); STATES = await r2.json() || {};
   fillSelectors();
   compute();
 }
 
+function keys(obj){ return Object.keys(obj||{}); }
+
 function fillSelectors(){
-  const b = $('#brand'), m = $('#model'), s = $('#storage');
-  // brand
-  b.innerHTML = Object.keys(PRICES).sort().map(x=>`<option>${x}</option>`).join('') || '<option>—</option>';
-  // model
-  const brand = b.value || Object.keys(PRICES)[0];
-  const models = brand ? Object.keys(PRICES[brand] || {}).sort() : [];
-  m.innerHTML = models.map(x=>`<option>${x}</option>`).join('') || '<option>—</option>';
-  // storage
-  const model = m.value || models[0];
-  const storages = (PRICES[brand] && PRICES[brand][model]) ? Object.keys(PRICES[brand][model]).sort((a,b)=>+a-+b) : [];
-  s.innerHTML = storages.map(x=>`<option>${x}</option>`).join('') || '<option>—</option>';
+  const brands = Array.from(new Set([...keys(LIVE), ...keys(STATES)])).sort();
+  $('#brand').innerHTML = brands.map(x=>`<option>${x}</option>`).join('') || '<option>—</option>';
+  const b = $('#brand').value || brands[0];
+  const models = Array.from(new Set([...(keys(LIVE[b]||{})), ...(keys(STATES[b]||{}))])).sort();
+  $('#model').innerHTML = models.map(x=>`<option>${x}</option>`).join('') || '<option>—</option>';
+  const m = $('#model').value || models[0];
+  const storages = Array.from(new Set([...(keys(LIVE[b]?.[m]||{})), ...(keys(STATES[b]?.[m]||{}))])).sort((a,b)=>+a-+b);
+  $('#storage').innerHTML = storages.map(x=>`<option>${x}</option>`).join('') || '<option>—</option>';
   updateBaseInfo();
 }
 
-function getBase(){
-  const brand = $('#brand').value;
-  const model = $('#model').value;
-  const storage = $('#storage').value;
-  try { return { brand, model, storage, ...PRICES[brand][model][storage] }; }
-  catch { return null; }
+function getStatePrices(b,m,s){
+  try { return STATES[b][m][s].states; } catch { return null; }
+}
+function getMinMax(b,m,s){
+  try { return LIVE[b][m][s]; } catch { return null; }
 }
 
 function updateBaseInfo(){
-  const base = getBase();
-  if(!base){ $('#baseInfo').textContent = 'Médiane de base : —'; return; }
-  const med = eur(median(base.min, base.max));
-  $('#baseInfo').textContent = `Médiane de base : ${med} € (min ${base.min} / max ${base.max})`;
+  const b=$('#brand').value, m=$('#model').value, s=$('#storage').value;
+  const st = getStatePrices(b,m,s);
+  if(st){
+    const tb = st.tb || {opening:0, ceiling:0};
+    $('#baseInfo').textContent = `Base (par état dispo). Ex: Très bon → ${tb.opening}–${tb.ceiling} €`;
+  } else {
+    const mm = getMinMax(b,m,s);
+    if(!mm){ $('#baseInfo').textContent = 'Base : —'; return; }
+    $('#baseInfo').textContent = `Base (min/max) : ${mm.min}–${mm.max} €`;
+  }
 }
 
 function compute(){
-  const base = getBase();
-  if(!base){ $('#res').textContent = 'Aucun tarif interne pour cette config.'; $('#detail').textContent='—'; return; }
-
-  const cond = {
-    screen: $('#screen').value,
-    frame:  $('#frame').value,
-    liquid: $('#liquid').value,
-    defects: [...document.querySelectorAll('.defect:checked')].map(x=>x.value),
-    locked:  $('#locked').checked
-  };
-
-  if (cond.locked){
-    $('#res').textContent = 'Non reprenable (compte/verrouillage actif).';
-    $('#detail').textContent = 'Décotes appliquées : verrouillage';
+  const b=$('#brand').value, m=$('#model').value, s=$('#storage').value;
+  const etat=$('#etat').value;
+  const st = getStatePrices(b,m,s);
+  if($('#locked').checked){
+    $('#res').textContent = 'Non reprenable (verrouillage).';
+    $('#detail').textContent = '—';
     return;
   }
-
-  const m = median(base.min, base.max);
-  const d1 = DEDUCT.screen[cond.screen] || 0;
-  const d2 = DEDUCT.frame[cond.frame]   || 0;
-  const d3 = DEDUCT.liquid[cond.liquid] || 0;
-  const dN = (cond.defects || []).length * DEDUCT.defectsEach;
-
-  const total = d1 + d2 + d3 + dN;
-  const medAdj = m * (1 - total);
-
-  const ceiling  = eur(medAdj);           // médiane ajustée
-  const opening  = eur(medAdj * 0.90);    // -10% ouverture
-
-  $('#res').textContent = `Ouverture : ${opening} €   |   Plafond : ${ceiling} €`;
-  $('#detail').textContent = `Décotes appliquées : écran=${(d1*100)|0}% ; châssis=${(d2*100)|0}% ; liquide=${(d3*100)|0}% ; défauts x${cond.defects.length} = ${(dN*100)|0}%  → total ${(total*100).toFixed(0)}%`;
+  if(st && st[etat]){
+    const o = st[etat].opening||0, c = st[etat].ceiling||0;
+    $('#res').textContent = `Ouverture : ${o} €   |   Plafond : ${c} €`;
+    $('#detail').textContent = `Tarification par état (source: prices_states).`;
+    return;
+  }
+  // fallback Mode Pro (min/max)
+  const mm = getMinMax(b,m,s);
+  if(!mm){
+    $('#res').textContent = 'Aucun tarif pour cette config.';
+    $('#detail').textContent = '—';
+    return;
+  }
+  const screen=$('#screen').value, frame=$('#frame').value, liquid=$('#liquid').value;
+  const d1 = DEDUCT.screen[screen]||0, d2 = DEDUCT.frame[frame]||0, d3 = DEDUCT.liquid[liquid]||0;
+  const medAdj = median(mm.min, mm.max) * (1 - (d1+d2+d3));
+  const c = eur(medAdj), o = eur(medAdj*0.90);
+  $('#res').textContent = `Ouverture : ${o} €   |   Plafond : ${c} €`;
+  $('#detail').textContent = `Mode Pro (fallback) — décotes écran=${(d1*100)|0}%, châssis=${(d2*100)|0}%, liquide=${(d3*100)|0}%`;
 }
 
-['#brand','#model','#storage','#screen','#frame','#liquid','#locked'].forEach(sel=>{
+['#brand','#model','#storage','#etat','#screen','#frame','#liquid','#locked'].forEach(sel=>{
   document.addEventListener('change', e=>{ if(e.target.matches(sel)) { if(sel!=='#brand'&&sel!=='#model') compute(); }});
 });
 document.addEventListener('change', e=>{
   if(e.target.matches('#brand')) { fillSelectors(); compute(); }
   if(e.target.matches('#model')) { fillSelectors(); compute(); }
 });
-document.addEventListener('click', e=>{
-  if(e.target.classList && e.target.classList.contains('defect')) compute();
-});
 
-loadPrices();
+loadAll();
 </script>
 </body>
 </html>
