@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin — Tarifs de reprise</title>
+  <meta name="description" content="Gérer vos prix de reprise par marque, modèle et stockage.">
+  <style>
+    :root{--fg:#0b1220;--muted:#6b7280;--border:#e5e7eb;--brand:#2563eb;--brand2:#06b6d4;--bg:#f8fafc}
+    *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;color:var(--fg);background:var(--bg)}
+    .container{max-width:1100px;margin:0 auto;padding:20px 16px}
+    .card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:16px;margin-top:16px}
+    input,select{padding:8px;border:1px solid var(--border);border-radius:10px}
+    table{width:100%;border-collapse:collapse}
+    th,td{border-bottom:1px solid var(--border);padding:8px;text-align:left}
+    th{font-weight:800;background:#f9fafb}
+    .row{display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:8px;margin-top:8px}
+    .btn{display:inline-block;border:1px solid var(--brand);background:linear-gradient(90deg,var(--brand),var(--brand2));color:#fff;padding:8px 12px;border-radius:10px;text-decoration:none;font-weight:700;cursor:pointer}
+    .btn.out{background:#fff;color:var(--brand)}
+    .muted{color:var(--muted)} .small{font-size:.9rem}
+    .flex{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Admin — Tarifs de reprise</h1>
+    <p class="muted small">Ces montants sont les <b>prix de reprise max</b> en état parfait/très bon. L’estimation client applique ensuite les déductions (écran, châssis, défauts…).</p>
+
+    <div class="card">
+      <div class="flex">
+        <div style="flex:1">
+          <label>Clé admin</label><br/>
+          <input id="token" placeholder="Colle la valeur de ADMIN_TOKEN" style="width:100%"/>
+          <button class="btn out" id="saveToken">Enregistrer</button>
+        </div>
+        <div style="flex:2">
+          <label>Recherche</label><br/>
+          <input id="search" placeholder="Apple, iPhone 13, 128…" style="width:60%"/>
+          <button class="btn out" id="btnSearch">Filtrer</button>
+          <button class="btn out" id="btnReset">Réinitialiser</button>
+        </div>
+        <div>
+          <label>&nbsp;</label><br/>
+          <button class="btn out" id="btnExport">Exporter JSON</button>
+          <label class="btn out" for="fileImport">Importer JSON</label>
+          <input type="file" id="fileImport" accept="application/json" style="display:none"/>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <input id="newBrand" placeholder="Marque (ex. Apple)"/>
+        <input id="newModel" placeholder="Modèle (ex. iPhone 13)"/>
+        <input id="newStorage" placeholder="Stockage (Go)" type="number" min="4"/>
+        <input id="newPrice" placeholder="Prix max (€)" type="number" min="0"/>
+        <button class="btn" id="btnAdd">Ajouter / Mettre à jour</button>
+      </div>
+      <div class="muted small" style="margin-top:6px">Astuce: pour un modèle avec plusieurs stockages, ajoute plusieurs lignes.</div>
+    </div>
+
+    <div class="card">
+      <div class="flex" style="justify-content:space-between">
+        <div><b>Liste des tarifs</b> — <span id="count" class="muted small">0</span> entrées</div>
+        <div class="muted small">Source API: <code>/.netlify/functions/prices</code></div>
+      </div>
+      <table id="tbl">
+        <thead>
+          <tr><th>Marque</th><th>Modèle</th><th>Stockage (Go)</th><th>Prix max (€)</th><th>Actions</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div class="flex" style="margin-top:10px">
+        <button class="btn" id="btnSaveAll">Enregistrer tout</button>
+        <div id="msg" class="muted small"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+const FN='/[.]netlify/functions/prices'.replace('[.]','.'); // éviter autolink
+const $=id=>document.getElementById(id);
+const tokenSaved = localStorage.getItem('drp_admin_token') || '';
+if(tokenSaved) $('token').value = tokenSaved;
+$('saveToken').onclick = ()=>{ localStorage.setItem('drp_admin_token', $('token').value.trim()); alert('Token enregistré.'); };
+
+let fullList = []; // toutes entrées
+let viewList = []; // filtrées
+
+function render(){
+  const tbody = $('tbl').querySelector('tbody');
+  tbody.innerHTML='';
+  viewList.forEach((it, idx)=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input value="${it.brand}" data-k="brand"/></td>
+      <td><input value="${it.model}" data-k="model"/></td>
+      <td><input type="number" min="4" value="${it.storage}" data-k="storage"/></td>
+      <td><input type="number" min="0" value="${it.price}" data-k="price"/></td>
+      <td><button class="btn out" data-act="del" data-idx="${idx}">Supprimer</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  $('count').textContent = viewList.length;
+}
+
+function applyFilter(){
+  const q = $('search').value.trim().toUpperCase();
+  viewList = !q ? fullList.slice() : fullList.filter(it => (`${it.brand} ${it.model} ${it.storage} ${it.price}`).toUpperCase().includes(q));
+  render();
+}
+
+async function load(){
+  const r = await fetch(FN+'?as=list'); const j = await r.json();
+  fullList = (j.items||[]).map(x=> ({brand:x.brand, model:x.model, storage:Number(x.storage), price:Number(x.price)}));
+  applyFilter();
+}
+load();
+
+$('btnSearch').onclick = applyFilter;
+$('btnReset').onclick = ()=>{ $('search').value=''; applyFilter(); };
+
+$('btnAdd').onclick = async ()=>{
+  const b=$('newBrand').value.trim(), m=$('newModel').value.trim();
+  const s=Number($('newStorage').value), p=Number($('newPrice').value);
+  if(!b||!m||!s||!p){ alert('Complète les 4 champs.'); return; }
+  const t = localStorage.getItem('drp_admin_token') || $('token').value.trim();
+  if(!t){ alert('Renseigne ta clé admin.'); return; }
+  const payload = { brand:b, model:m, storage:s, price:p };
+  const r = await fetch(FN, { method:'POST', headers:{'Content-Type':'application/json','x-admin-token':t}, body: JSON.stringify(payload) });
+  const j = await r.json();
+  if(!r.ok || !j.ok){ alert('Erreur: '+(j.error||r.status)); return; }
+  $('newBrand').value=''; $('newModel').value=''; $('newStorage').value=''; $('newPrice').value='';
+  load();
+};
+
+$('tbl').addEventListener('click', async (e)=>{
+  const btn = e.target.closest('button[data-act="del"]'); if(!btn) return;
+  const idx = Number(btn.dataset.idx);
+  // suppression locale puis sauvegarde globale (simple)
+  viewList.splice(idx, 1);
+  // reconstruire fullList = vue filtrée actuelle (hypothèse: on travaille sur l'ensemble)
+  fullList = viewList.slice();
+  render();
+});
+
+$('tbl').addEventListener('input', (e)=>{
+  const inp = e.target.closest('input[data-k]'); if(!inp) return;
+  const row = inp.closest('tr'); const idx = Array.from(row.parentNode.children).indexOf(row);
+  const k = inp.dataset.k; const v = (k==='storage'||k==='price') ? Number(inp.value) : inp.value;
+  viewList[idx][k] = v;
+});
+
+$('btnSaveAll').onclick = async ()=>{
+  const t = localStorage.getItem('drp_admin_token') || $('token').value.trim();
+  if(!t){ alert('Renseigne ta clé admin.'); return; }
+  const payload = { items: viewList.map(it => ({brand:it.brand, model:it.model, storage:Number(it.storage), price:Number(it.price)})) };
+  const r = await fetch(FN, { method:'POST', headers:{'Content-Type':'application/json','x-admin-token':t}, body: JSON.stringify(payload) });
+  const j = await r.json();
+  if(!r.ok || !j.ok){ alert('Erreur: '+(j.error||r.status)); return; }
+  $('msg').textContent = 'Enregistré.'; setTimeout(()=>$('msg').textContent='', 1500);
+  load();
+};
+
+$('btnExport').onclick = ()=>{
+  const obj = { items: fullList };
+  const blob = new Blob([JSON.stringify(obj, null, 2)], {type:'application/json;charset=utf-8'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download='drp-prices.json';
+  document.body.appendChild(a); a.click(); a.remove();
+};
+
+$('fileImport').addEventListener('change', async (e)=>{
+  const file = e.target.files[0]; if(!file) return;
+  const txt = await file.text(); let obj = null;
+  try{ obj = JSON.parse(txt); }catch{ alert('JSON invalide'); return; }
+  const items = obj.items || [];
+  if(!Array.isArray(items) || !items.length){ alert('JSON vide ou invalide (attendu: {items:[...]})'); return; }
+  const t = localStorage.getItem('drp_admin_token') || $('token').value.trim();
+  if(!t){ alert('Renseigne ta clé admin.'); return; }
+  const r = await fetch(FN, { method:'POST', headers:{'Content-Type':'application/json','x-admin-token':t}, body: JSON.stringify({ items }) });
+  const j = await r.json();
+  if(!r.ok || !j.ok){ alert('Erreur: '+(j.error||r.status)); return; }
+  load(); e.target.value='';
+});
+</script>
+</body>
+</html>

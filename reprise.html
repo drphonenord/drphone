@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Reprise smartphone — Estimation instantanée | Dr Phone</title>
-  <meta name="description" content="Calculez une estimation de reprise selon le modèle, le stockage et l'état (écran, châssis, fonctions, iCloud/Google, oxydation).">
+  <title>Reprise smartphone — Estimation (tarifs internes)</title>
+  <meta name="description" content="Estimation de reprise basée sur vos tarifs internes (admin), ajustée selon l'état. Mode Pro pour la négo.">
   <style>
-    :root{--fg:#0b1220;--muted:#6b7280;--border:#e5e7eb;--brand:#2563eb;--brand2:#06b6d4;--bg:#f8fafc;--danger:#ef4444}
+    :root{--fg:#0b1220;--muted:#6b7280;--border:#e5e7eb;--brand:#2563eb;--brand2:#06b6d4;--bg:#f8fafc;--danger:#ef4444;--ok:#16a34a}
     *{box-sizing:border-box}
     body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;color:var(--fg);background:var(--bg)}
     .container{max-width:980px;margin:0 auto;padding:24px 16px}
@@ -16,7 +16,7 @@
     .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
     .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
     label{font-weight:600;display:block;margin-bottom:6px}
-    select,input[type=text],input[type=number]{width:100%;padding:10px;border:1px solid var(--border);border-radius:12px}
+    select,input[type=text]{width:100%;padding:10px;border:1px solid var(--border);border-radius:12px}
     .checkgroup{display:flex;flex-wrap:wrap;gap:10px}
     .chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);padding:8px 10px;border-radius:999px;background:#fff}
     .chip input{margin:0}
@@ -27,25 +27,22 @@
     .danger{color:var(--danger);font-weight:700}
     .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
     .hint{font-size:.9rem;color:var(--muted)}
+    .src{font-size:.9rem;color:var(--muted);margin-top:6px}
+    .pro{display:none;margin-top:10px;border-top:1px dashed var(--border);padding-top:10px}
+    .pill{display:inline-block;padding:6px 10px;border-radius:999px;background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe}
     @media (max-width:780px){.row,.row3,.grid2{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Reprise smartphone — estimation instantanée</h1>
-    <p class="muted">Remplis les étapes ci‑dessous. Si le compte Google/iCloud est actif ou en cas d’oxydation lourde, l’appareil n’est <b>pas</b> reprenable.</p>
+    <h1>Reprise smartphone — estimation</h1>
+    <p class="muted">Base tarifaire issue de vos <b>tarifs internes</b> (admin), au format <span class="pill">marque → modèle → stockage</span>. <span class="pill">Mode Pro</span> affiche l’offre d’ouverture et le plafond.</p>
 
     <div class="card">
       <div class="row">
         <div>
           <label>Marque</label>
-          <select id="brand">
-            <option>Apple</option>
-            <option>Samsung</option>
-            <option>Google</option>
-            <option>Xiaomi</option>
-            <option>Autre</option>
-          </select>
+          <select id="brand"></select>
         </div>
         <div>
           <label>Modèle</label>
@@ -62,6 +59,7 @@
           <input id="color" type="text" placeholder="Ex. Noir, Bleu..." />
         </div>
       </div>
+      <div class="src" id="srcinfo">Source prix: interne (API)</div>
     </div>
 
     <div class="card">
@@ -129,12 +127,18 @@
       <div class="grid2">
         <div>
           <button class="btn" id="calc">Calculer l’estimation</button>
+          <label class="chip" style="margin-left:8px"><input type="checkbox" id="pro"> Mode Pro</label>
           <div id="warn" class="muted" style="margin-top:8px"></div>
         </div>
         <div class="result" id="result">
           <div class="muted">Estimation de reprise</div>
           <div class="price" id="price">—</div>
-          <div class="hint">Plage indicative, après test en boutique.</div>
+          <div class="hint" id="basedetail">—</div>
+          <div class="pro" id="probox">
+            <div class="muted">Repères négociation</div>
+            <div><b>Offre d’ouverture</b> (à proposer) : <span class="price" id="offerOpen">—</span></div>
+            <div><b>Plafond à ne pas dépasser</b> : <span class="price" id="offerMax">—</span></div>
+          </div>
         </div>
       </div>
     </div>
@@ -168,143 +172,122 @@
       </form>
     </div>
 
-    <p class="muted" style="margin-top:10px">⚖️ L’estimation est indicative et dépend d’un contrôle visuel et fonctionnel en boutique. Les prix évoluent selon le marché.</p>
+    <p class="muted" style="margin-top:10px">⚖️ L’estimation est indicative et dépend d’un contrôle visuel et fonctionnel en boutique.</p>
   </div>
 
-  <script>
-  // Base prices (approx) by model & storage
-  const BASE = {
-    'Apple': {
-      'iPhone 11': {64:150,128:170,256:200},
-      'iPhone 12': {64:230,128:260,256:300},
-      'iPhone 12 Pro': {128:320,256:360,512:420},
-      'iPhone 13': {128:360,256:400,512:470},
-      'iPhone 13 Pro': {128:430,256:500,512:580,1024:650},
-      'iPhone 14': {128:460,256:520,512:600},
-      'iPhone 14 Pro': {128:570,256:650,512:740,1024:800},
-      'iPhone 15': {128:600,256:670,512:750},
-      'iPhone 15 Pro': {128:720,256:800,512:900,1024:980},
-      'Autre iPhone': {64:120,128:150,256:180,512:220}
-    },
-    'Samsung': {
-      'Galaxy S20': {128:180,256:210},
-      'Galaxy S21': {128:220,256:250},
-      'Galaxy S22': {128:280,256:320},
-      'Galaxy S23': {128:360,256:400,512:460},
-      'Galaxy S24': {128:420,256:470,512:520},
-      'Galaxy A52': {128:130,256:150},
-      'Galaxy A53': {128:150,256:170},
-      'Galaxy A54': {128:180,256:200},
-      'Autre Samsung': {64:90,128:120,256:150,512:180}
-    },
-    'Google': {
-      'Pixel 6': {128:180,256:220},
-      'Pixel 7': {128:260,256:300},
-      'Pixel 8': {128:340,256:380},
-      'Autre Pixel': {128:140,256:170,512:200}
-    },
-    'Xiaomi': {
-      'Redmi Note 10': {64:90,128:110},
-      'Redmi Note 11': {64:110,128:130},
-      'Redmi Note 12': {128:150,256:170},
-      'Autre Xiaomi': {64:70,128:90,256:110,512:140}
-    },
-    'Autre': {
-      'Modèle générique': {64:60,128:80,256:100,512:130}
-    }
-  };
+<script>
+const API='/.netlify/functions/prices';
+const $=id=>document.getElementById(id);
+let PRICE_MAP = {}; // {brand:{model:{storage:price}}}
 
-  const MODELS = {
-    'Apple':['iPhone 11','iPhone 12','iPhone 12 Pro','iPhone 13','iPhone 13 Pro','iPhone 14','iPhone 14 Pro','iPhone 15','iPhone 15 Pro','Autre iPhone'],
-    'Samsung':['Galaxy S20','Galaxy S21','Galaxy S22','Galaxy S23','Galaxy S24','Galaxy A52','Galaxy A53','Galaxy A54','Autre Samsung'],
-    'Google':['Pixel 6','Pixel 7','Pixel 8','Autre Pixel'],
-    'Xiaomi':['Redmi Note 10','Redmi Note 11','Redmi Note 12','Autre Xiaomi'],
-    'Autre':['Modèle générique']
-  };
+function round5(x){ return Math.max(0, Math.round(x/5)*5); }
 
-  const $=id=>document.getElementById(id);
-  function fillModels(){
-    const b=$('brand').value, models=MODELS[b];
-    $('model').innerHTML = models.map(m=>`<option>${m}</option>`).join('');
-    fillStorage();
-  }
-  function fillStorage(){
-    const b=$('brand').value, m=$('model').value, stor=Object.keys(BASE[b][m]).map(n=>Number(n));
-    $('storage').innerHTML = stor.map(n=>`<option value="${n}">${n} Go</option>`).join('');
-  }
-  $('brand').addEventListener('change', fillModels);
-  $('model').addEventListener('change', fillStorage);
+const DEDUCS = {
+  screen:{ ok:0, micros:0.05, fissure:0.20, brise:0.50 },
+  body:  { ok:0, usure:0.05, tordu:0.15 },
+  water: { non:0, leger:0.20, fort:'n/a' },
+  lock:  { off:0, on:'n/a' },
+  defs:  { faceid:0.15, battery:0.10, camera:0.07, speaker:0.05, charge:0.08, network:0.07, buttons:0.03, other:0.05 }
+};
+
+function fillBrands(){
+  const brands = Object.keys(PRICE_MAP).sort();
+  $('brand').innerHTML = brands.map(b=>`<option>${b}</option>`).join('');
+  if(!brands.length){ $('brand').innerHTML = '<option>Apple</option>'; }
   fillModels();
+}
+function fillModels(){
+  const b = $('brand').value;
+  const models = PRICE_MAP[b] ? Object.keys(PRICE_MAP[b]).sort() : ['Modèle générique'];
+  $('model').innerHTML = models.map(m=>`<option>${m}</option>`).join('');
+  fillStorage();
+}
+function fillStorage(){
+  const b = $('brand').value, m = $('model').value;
+  const stor = (PRICE_MAP[b] && PRICE_MAP[b][m]) ? Object.keys(PRICE_MAP[b][m]).map(n=>Number(n)).sort((a,b)=>a-b) : [64,128,256,512];
+  $('storage').innerHTML = stor.map(n=>`<option value="${n}">${n} Go</option>`).join('');
+}
 
-  const DEDUCS = {
-    screen:{ ok:0, micros:0.05, fissure:0.20, brise:0.50 },
-    body:  { ok:0, usure:0.05, tordu:0.15 },
-    water: { non:0, leger:0.20, fort:'n/a' },
-    lock:  { off:0, on:'n/a' },
-    defs:  { faceid:0.15, battery:0.10, camera:0.07, speaker:0.05, charge:0.08, network:0.07, buttons:0.03, other:0.05 }
-  };
+function getBase(){
+  const b=$('brand').value, m=$('model').value, s=String(Number($('storage').value));
+  const base = (PRICE_MAP[b] && PRICE_MAP[b][m] && PRICE_MAP[b][m][s]) ? Number(PRICE_MAP[b][m][s]) : 0;
+  return { base, detail: base? 'tarifs internes (admin)' : 'non référencé' };
+}
 
-  function round5(x){ return Math.max(0, Math.round(x/5)*5); }
+function compute(){
+  const { base, detail } = getBase();
+  if(!base) return {ok:false, msg:'Modèle/stockage non référencé'};
+  if(DEDUCS.lock[$('lock').value] === 'n/a') return {ok:true, price:0, detail, reason:'verrouillage iCloud/Google'};
+  if(DEDUCS.water[$('water').value] === 'n/a') return {ok:true, price:0, detail, reason:'oxydation forte'};
+  let perc = 0;
+  perc += DEDUCS.screen[$('screen').value] || 0;
+  perc += DEDUCS.body[$('body').value] || 0;
+  perc += DEDUCS.water[$('water').value] || 0;
+  document.querySelectorAll('.def:checked').forEach(cb=> perc += (DEDUCS.defs[cb.value]||0));
+  if(perc > 0.85) perc = 0.85;
+  let est = base * (1 - perc);
+  const acc = $('acc').value; if(acc==='chargeur') est += 5; if(acc==='boite') est += 10;
+  const low = round5(est * 0.90);
+  const high = round5(est * 1.10);
+  est = round5(est);
+  return {ok:true, price:est, low, high, base, detail};
+}
 
-  function compute(){
-    const b=$('brand').value, m=$('model').value, s=Number($('storage').value);
-    const base = (BASE[b] && BASE[b][m] && BASE[b][m][s]) ? BASE[b][m][s] : 0;
-    if(!base) return {ok:false, msg:'Modèle/stockage non référencé'};
+function summary(){
+  const b=$('brand').value, m=$('model').value, s=$('storage').value+' Go';
+  const screen=$('screen').selectedOptions[0].text;
+  const body=$('body').selectedOptions[0].text;
+  const water=$('water').selectedOptions[0].text;
+  const lock=$('lock').selectedOptions[0].text;
+  const color=$('color').value||'—';
+  const acc=$('acc').selectedOptions[0].text;
+  const defs=[...document.querySelectorAll('.def:checked')].map(x=>x.parentElement.textContent.trim()).join(', ')||'—';
+  return `Modèle: ${b} ${m} ${s} | Couleur: ${color} | Écran: ${screen} | Châssis: ${body} | Défauts: ${defs} | Oxydation: ${water} | Compte: ${lock} | Accessoires: ${acc}`;
+}
 
-    // non reprenable ?
-    if(DEDUCS.lock[$('lock').value] === 'n/a') return {ok:true, price:0, reason:'verrouillage iCloud/Google'};
-    if(DEDUCS.water[$('water').value] === 'n/a') return {ok:true, price:0, reason:'oxydation forte'};
+async function init(){
+  // Récupère la carte des prix
+  const r = await fetch(API);
+  const j = await r.json();
+  PRICE_MAP = (j.map||{});
+  document.getElementById('srcinfo').textContent = 'Source prix: interne (API) — '+(j.count||0)+' entrées';
+  fillBrands();
+}
 
-    let perc = 0;
-    perc += DEDUCS.screen[$('screen').value] || 0;
-    perc += DEDUCS.body[$('body').value] || 0;
-    perc += DEDUCS.water[$('water').value] || 0;
-
-    document.querySelectorAll('.def:checked').forEach(cb=> perc += (DEDUCS.defs[cb.value]||0));
-
-    if(perc > 0.85) perc = 0.85; // garde un plancher
-
-    let est = base * (1 - perc);
-    // Bonus petits accessoires
-    const acc = $('acc').value;
-    if(acc==='chargeur') est += 5;
-    if(acc==='boite') est += 10;
-
-    // borne +/‑10%
-    const low = round5(est * 0.9);
-    const high = round5(est * 1.1);
-    est = round5(est);
-    return {ok:true, price:est, low, high, base};
+document.getElementById('calc').addEventListener('click', ()=>{
+  const r = compute();
+  const pro = document.getElementById('pro').checked;
+  const result = document.getElementById('result');
+  const warn = document.getElementById('warn');
+  result.style.display='block';
+  if(!r.ok){
+    document.getElementById('price').innerHTML = '<span class="danger">—</span>';
+    document.getElementById('basedetail').textContent = r.msg || '—';
+    warn.innerHTML = '<span class="danger">Complète le modèle / stockage.</span>';
+    document.getElementById('probox').style.display = pro ? 'block' : 'none';
+    return;
   }
-
-  function summary(){
-    const b=$('brand').value, m=$('model').value, s=$('storage').value+' Go';
-    const screen=$('screen').selectedOptions[0].text;
-    const body=$('body').selectedOptions[0].text;
-    const water=$('water').selectedOptions[0].text;
-    const lock=$('lock').selectedOptions[0].text;
-    const color=$('color').value||'—';
-    const acc=$('acc').selectedOptions[0].text;
-    const defs=[...document.querySelectorAll('.def:checked')].map(x=>x.parentElement.textContent.trim()).join(', ')||'—';
-    return `Modèle: ${b} ${m} ${s} | Couleur: ${color} | Écran: ${screen} | Châssis: ${body} | Défauts: ${defs} | Oxydation: ${water} | Compte: ${lock} | Accessoires: ${acc}`;
-  }
-
-  $('calc').addEventListener('click', ()=>{
-    const r = compute();
-    if(!r.ok){ $('warn').innerHTML = '<span class="danger">Complète le modèle / stockage.</span>'; return; }
-    if(r.price===0 && r.reason){
-      $('result').style.display='block';
-      $('price').innerHTML = '<span class="danger">Non reprenable</span>';
-      $('warn').innerHTML = 'Motif: '+r.reason+'. Si tu désactives le compte / répares l’oxydation, on peut réévaluer.';
-    } else {
-      $('result').style.display='block';
-      $('price').textContent = `${r.low}–${r.high} €`;
-      $('warn').textContent = `Base: ${r.base} € — estimation au vu des éléments déclarés.`;
+  if(r.price===0 && r.reason){
+    document.getElementById('price').innerHTML = '<span class="danger">Non reprenable</span>';
+    document.getElementById('basedetail').textContent = r.detail;
+    warn.innerHTML = 'Motif: '+r.reason+'. Si désactivation compte / traitement oxydation, on réévalue.';
+    document.getElementById('probox').style.display = pro ? 'block' : 'none';
+    if(pro){ document.getElementById('offerOpen').textContent='—'; document.getElementById('offerMax').textContent='—'; }
+  } else {
+    document.getElementById('price').textContent = `${r.low}–${r.high} €`;
+    document.getElementById('basedetail').textContent = 'Base ' + r.base + ' € ('+r.detail+'), ajustée état.';
+    warn.textContent = 'Proposition indicative — contrôle en boutique.';
+    document.getElementById('probox').style.display = pro ? 'block' : 'none';
+    if(pro){
+      document.getElementById('offerOpen').textContent = r.low + ' €';
+      document.getElementById('offerMax').textContent  = r.price + ' €';
     }
-    // hydrate Netlify form hidden fields
-    $('field_estimation').value = $('price').textContent;
-    $('field_resume').value = summary();
-  });
-  </script>
+  }
+  document.getElementById('field_estimation').value = document.getElementById('price').textContent;
+  document.getElementById('field_resume').value = summary();
+});
+
+init();
+</script>
 </body>
 </html>
