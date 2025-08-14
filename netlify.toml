@@ -1,7 +1,7 @@
 
 [build]
-  command = ""
-  publish = "dist"
+  command = "echo pas de build"
+  publish = "public"
   functions = "netlify/functions"
 
 [functions]

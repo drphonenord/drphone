@@ -1,5 +1,5 @@
 {
-  "name": "drphonenord-functions",
+  "name": "drphonenord-api",
   "private": true,
   "type": "module",
   "dependencies": {
