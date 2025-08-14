@@ -1,0 +1,8 @@
+<!doctype html><html lang='fr'><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'><title>Suivi réparation</title>
+<style>body{font-family:system-ui;max-width:720px;margin:0 auto;padding:16px;background:#0b1222;color:#e5e7eb}input,button{padding:10px;border-radius:10px;border:1px solid #1f2937;background:#0a1020;color:#e5e7eb}</style>
+<body><h1>Suivi réparation</h1><p>Entrez votre code (ex: <b>DRP-2025-1234</b>) :</p><input id='code' placeholder='DRP-2025-1234'><button id='go'>Voir</button><pre id='out'></pre>
+<script>
+const FN='/.netlify/functions/tickets';const $=id=>document.getElementById(id);function codeFromHash(){return decodeURIComponent(location.hash.slice(1)||'');}
+async function show(code){if(!code){$('out').textContent='';return;}const r=await fetch(FN+'?code='+encodeURIComponent(code));const j=await r.json();if(!r.ok){$('out').textContent='Code introuvable.';return;}const t=j.item;$('out').textContent=`Code: ${t.code}\nStatut: ${t.status}\nModèle: ${t.model||''}\nClient: ${t.client||''}\nDernière mise à jour: ${t.updated||t.created||''}`;}
+$('go').onclick=()=>{location.hash=encodeURIComponent($('code').value.trim());show($('code').value.trim());};window.addEventListener('hashchange',()=>show(codeFromHash()));$('code').value=codeFromHash();show(codeFromHash());
+</script></body></html>
