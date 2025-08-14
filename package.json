@@ -1,9 +1,9 @@
 {
-  "name": "drphone",
+  "name": "drphone-full-admin",
   "private": true,
-  "version": "1.0.0",
   "type": "module",
+  "version": "1.0.0",
   "dependencies": {
-    "@netlify/blobs": "^6.3.0"
+    "@netlify/blobs": "^7.0.0"
   }
 }

@@ -1,7 +1,21 @@
-[functions]
-  directory = "netlify/functions"
-  node_bundler = "esbuild"
-  external_node_modules = ["@netlify/blobs"]
-
 [build]
-  publish = "."
+  publish = "public"
+  functions = "netlify/functions"
+
+[[headers]]
+  for = "/.netlify/functions/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, x-admin-token"
+    Cache-Control = "no-store"
+
+[[redirects]]
+  from = "/admin"
+  to = "/admin/dashboard.html"
+  status = 200
+
+[[redirects]]
+  from = "/admin/"
+  to = "/admin/dashboard.html"
+  status = 200

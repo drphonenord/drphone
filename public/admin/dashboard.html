@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dr Phone — Dashboard</title>
+  <style>
+    :root{--bg:#0b1222;--panel:#0f172a;--ink:#e5e7eb;--muted:#64748b;--ok:#22c55e;--err:#ef4444;}
+    *{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+    header{padding:16px 20px;border-bottom:1px solid #1f2937;display:flex;gap:12px;align-items:center;justify-content:space-between}
+    main{max-width:1100px;margin:0 auto;padding:20px}
+    .card{background:var(--panel);border:1px solid #1f2937;border-radius:16px;padding:16px;margin:12px 0}
+    input,button,textarea{padding:10px 12px;border-radius:10px;border:1px solid #1f2937;background:#0a1020;color:var(--ink)}
+    a.btn,button.btn{display:inline-block;padding:10px 14px;border-radius:10px;background:#111827;border:1px solid #1f2937;color:var(--ink);text-decoration:none}
+    .grid{display:grid;grid-template-columns:1fr;gap:12px}
+    @media(min-width:900px){.grid{grid-template-columns:1fr 1fr 1fr}}
+    .hint{color:var(--muted);font-size:13px}
+  </style>
+</head>
+<body>
+  <header>
+    <div><strong>Admin Dr Phone</strong></div>
+    <nav>
+      <a class="btn" href="/admin/clients.html">Clients</a>
+      <a class="btn" href="/admin/repairs.html">Réparations</a>
+      <a class="btn" href="/admin/prices.html">Prix</a>
+    </nav>
+  </header>
+  <main>
+    <section class="card">
+      <h2>Token admin</h2>
+      <p class="hint">Colle ici ton <code>ADMIN_TOKEN</code> (mémorisé en local). Utilisé pour les requêtes non-GET.</p>
+      <div style="display:flex;gap:8px;">
+        <input id="token" placeholder="ADMIN_TOKEN" style="flex:1"/>
+        <button class="btn" onclick="save()">Enregistrer</button>
+      </div>
+      <p id="status" class="hint"></p>
+    </section>
+
+    <section class="card">
+      <h2>Test API</h2>
+      <button class="btn" onclick="ping()">Lister clients (GET)</button>
+      <pre id="out" style="white-space:pre-wrap;"></pre>
+    </section>
+  </main>
+  <script>
+    const KEY='drphone_admin_token';
+    function save(){ localStorage.setItem(KEY, document.getElementById('token').value.trim()); document.getElementById('status').textContent='Token enregistré.' }
+    async function ping(){
+      const res = await fetch('/.netlify/functions/clients');
+      document.getElementById('out').textContent = await res.text();
+    }
+    document.getElementById('token').value = localStorage.getItem(KEY)||'';
+  </script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+<!DOCTYPE html><html lang="fr"><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dr Phone</title>
+<body style="font-family:system-ui,Segoe UI,Roboto;padding:24px;background:#0f172a;color:#e5e7eb">
+  <h1>Dr Phone</h1>
+  <p>Admin : <a href="/admin/dashboard.html" style="color:#93c5fd">/admin/dashboard.html</a></p>
+  <pre id="out"></pre>
+  <script>
+    fetch('/.netlify/functions/prices_states').then(r=>r.json()).then(d=>{
+      document.getElementById('out').textContent = JSON.stringify(d, null, 2);
+    });
+  </script>
+</body></html>
