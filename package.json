@@ -1,8 +1,7 @@
 {
-  "name": "drphone-full-admin-v2",
+  "name": "drphonenord-functions",
   "private": true,
   "type": "module",
-  "version": "1.0.0",
   "dependencies": {
     "@netlify/blobs": "^7.0.0"
   }

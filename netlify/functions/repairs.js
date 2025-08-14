@@ -1,39 +1,68 @@
-import { getStore } from '@netlify/blobs';
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-admin-token'
-};
-const ok = (b, s=200) => ({ statusCode:s, headers:{'Content-Type':'application/json', ...CORS}, body:JSON.stringify(b) });
-const no = (b, s=400) => ok(b, s);
-const isWrite = (m) => ['POST','PUT','PATCH','DELETE'].includes(m);
+import { readJSON, writeJSON } from './_store.js';
+import { ok, error, withCors, corsHeaders } from './_cors.js';
+import { id, parseBody } from './_util.js';
 
-const STORE = getStore({ name: 'drphone', siteID: process.env.NETLIFY_BLOBS_SITE_ID, token: process.env.NETLIFY_BLOBS_TOKEN });
-const KEY = 'repairs';
-export async function handler(event){
-  if (event.httpMethod === 'OPTIONS') return { statusCode:204, headers: CORS };
-  if (isWrite(event.httpMethod)) {
-    if ((event.headers['x-admin-token']||'') !== (process.env.ADMIN_TOKEN||'')) return no({ error:'unauthorized' }, 401);
-  }
-  if (event.httpMethod === 'GET') {
-    const data = await STORE.getJSON(KEY) ?? await seed();
-    return ok(data);
-  }
-  if (event.httpMethod === 'POST') {
-    const body = JSON.parse(event.body||'{}');
-    const data = (await STORE.getJSON(KEY)) ?? [];
-    data.push({ id: crypto.randomUUID(), ...body, createdAt: new Date().toISOString() });
-    await STORE.setJSON(KEY, data);
-    return ok({ ok:true });
-  }
-  return no({ error:'method_not_allowed' }, 405);
+const FILE = 'repairs.json';
+
+async function loadAll() {
+  return (await readJSON(FILE, [])) || [];
 }
-async function seed(){
-  const rows = [
-    { id: crypto.randomUUID(), client: 'Alice Martin', device: 'iPhone 13', issue: 'Écran', createdAt: new Date().toISOString() },
-    { id: crypto.randomUUID(), client: 'Karim Ben', device: 'Samsung S21', issue: 'Batterie', createdAt: new Date().toISOString() }
-  ];
-  await STORE.setJSON(KEY, rows);
-  return rows;
+
+async function saveAll(items) {
+  await writeJSON(FILE, items);
+}
+
+export async function handler(event, context) {
+  if (event.httpMethod === 'OPTIONS') {
+    return withCors({ statusCode: 204, body: '' });
+  }
+
+  try {
+    const items = await loadAll();
+
+    if (event.httpMethod === 'GET') {
+      const params = event.queryStringParameters || {}
+      const itemId = params.id;
+      if (itemId) {
+        const item = items.find(x => x.id === itemId);
+        return item ? ok(item) : error('repairs: not found', 404);
+      }
+      return ok({ items });
+    }
+
+    if (event.httpMethod === 'POST') {
+      const body = parseBody(event);
+      const newItem = { id: id(), createdAt: new Date().toISOString(), ...body };
+      items.push(newItem);
+      await saveAll(items);
+      return ok(newItem, 201);
+    }
+
+    if (event.httpMethod === 'PUT') {
+      const body = parseBody(event);
+      const itemId = body.id || (event.queryStringParameters || {}).id;
+      if (!itemId) return error('Missing id for update', 422);
+      const idx = items.findIndex(x => x.id === itemId);
+      if (idx === -1) return error('repairs: not found', 404);
+      items[idx] = { ...items[idx], ...body, id: itemId, updatedAt: new Date().toISOString() };
+      await saveAll(items);
+      return ok(items[idx]);
+    }
+
+    if (event.httpMethod === 'DELETE') {
+      const params = event.queryStringParameters || {}
+      const itemId = params.id || parseBody(event).id;
+      if (!itemId) return error('Missing id for delete', 422);
+      const filtered = items.filter(x => x.id !== itemId);
+      if (filtered.length === items.length) return error('repairs: not found', 404);
+      await saveAll(filtered);
+      return ok({ ok: true });
+    }
+
+    return error('Method not allowed', 405);
+  } catch (e) {
+    console.error('Function repairs error:', e);
+    return error('Internal error', 500);
+  }
 }

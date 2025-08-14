@@ -1,28 +1,34 @@
-# Dr Phone — Admin complet (Hotfix Blobs)
 
-## Installation rapide (UI)
-1) GitHub → **Upload** ce dossier (racine).  
-2) Netlify → **Import from GitHub**  
-   - Build: *(vide)*  
-   - Publish dir: `public`  
-   - Functions dir: `netlify/functions`  
-3) Netlify → **Site settings → Environment variables**  
-   - `ADMIN_TOKEN = <ta_clé>` → Save  
-   - (Optionnel si Blobs pas activé) `NETLIFY_BLOBS_SITE_ID`, `NETLIFY_BLOBS_TOKEN`  
-4) **Deploys → Trigger deploy → Deploy site** (ou *Clear cache and deploy site*).
+# DrPhoneNord - Netlify Functions (patched)
 
-## Admin
-`/admin/dashboard.html` → colle le `ADMIN_TOKEN` → Enregistrer.
+Pack complet pour corriger l'erreur `STORE.getJSON is not a function` et fournir des endpoints CRUD prêts à l'emploi.
 
-## API
-- `/.netlify/functions/clients` (GET, POST)
-- `/.netlify/functions/repairs` (GET, POST)
-- `/.netlify/functions/prices_states` (GET, PUT)
+## Contenu
+- `netlify/functions/_store.js` : helpers pour lire/écrire du JSON dans Netlify Blobs (compatible v7).
+- `netlify/functions/_cors.js` : CORS + helpers de réponses.
+- `netlify/functions/_util.js` : utilitaires (génération d'id, parse du body).
+- `netlify/functions/clients.js` : CRUD (GET/POST/PUT/DELETE) pour *clients*.
+- `netlify/functions/repairs.js` : CRUD pour *repairs*.
+- `netlify/functions/tickets.js` : CRUD pour *tickets*.
+- `netlify/functions/prices.js` : CRUD pour *prices* (prix par état).
+- `package.json` : dépendances (ESM + @netlify/blobs v7).
+- `netlify.toml` : configuration Functions (esbuild).
 
-## Hotfix Blobs
-**Option A (recommandé)** : activer **Storage → Blobs** sur le site Netlify puis *Clear cache and deploy site*.
-**Option B** : variables d'env manuelles :
-- `NETLIFY_BLOBS_SITE_ID` = *Site ID* (Site settings → General → Site details)
-- `NETLIFY_BLOBS_TOKEN` = *Personal access token* (User settings → Applications → Personal access tokens)
+## Appel des endpoints
+- `GET /.netlify/functions/clients` → liste
+- `GET /.netlify/functions/clients?id=ABC123` → un élément
+- `POST /.netlify/functions/clients` → crée (body JSON libre)
+- `PUT /.netlify/functions/clients` → met à jour (body contient `id`)
+- `DELETE /.netlify/functions/clients?id=ABC123` → supprime
 
-Le code des fonctions utilise automatiquement `getStore({ name, siteID, token })` si ces variables sont présentes.
+Même schéma pour `repairs`, `tickets`, `prices`.
+
+## CORS
+Par défaut `Access-Control-Allow-Origin: *`.  
+En prod, définis `CORS_ORIGIN` dans les variables d'environnement Netlify.
+
+## Déploiement
+1) Remplacer votre dossier `netlify/functions` par celui de ce pack
+2) `npm install` (dans le dossier racine du repo)
+3) Déployer sur Netlify
+

@@ -1,21 +1,9 @@
+
 [build]
-  publish = "."
+  command = ""
+  publish = "dist"
   functions = "netlify/functions"
 
-[[headers]]
-  for = "/.netlify/functions/*"
-  [headers.values]
-    Access-Control-Allow-Origin = "*"
-    Access-Control-Allow-Methods = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
-    Access-Control-Allow-Headers = "Content-Type, Authorization, x-admin-token"
-    Cache-Control = "no-store"
-
-[[redirects]]
-  from = "/admin"
-  to = "/admin.html"
-  status = 200
-
-[[redirects]]
-  from = "/admin/"
-  to = "/admin.html"
-  status = 200
+[functions]
+  node_bundler = "esbuild"
+  included_files = ["netlify/functions/**"]

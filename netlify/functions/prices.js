@@ -1,51 +1,68 @@
-import { getStore } from "@netlify/blobs";
 
-const ok = (data, status = 200) =>
-  new Response(JSON.stringify(data), {
-    status,
-    headers: {
-      "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Headers": "Content-Type, x-admin-token",
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS"
+import { readJSON, writeJSON } from './_store.js';
+import { ok, error, withCors, corsHeaders } from './_cors.js';
+import { id, parseBody } from './_util.js';
+
+const FILE = 'prices.json';
+
+async function loadAll() {
+  return (await readJSON(FILE, [])) || [];
+}
+
+async function saveAll(items) {
+  await writeJSON(FILE, items);
+}
+
+export async function handler(event, context) {
+  if (event.httpMethod === 'OPTIONS') {
+    return withCors({ statusCode: 204, body: '' });
+  }
+
+  try {
+    const items = await loadAll();
+
+    if (event.httpMethod === 'GET') {
+      const params = event.queryStringParameters || {}
+      const itemId = params.id;
+      if (itemId) {
+        const item = items.find(x => x.id === itemId);
+        return item ? ok(item) : error('prices: not found', 404);
+      }
+      return ok({ items });
     }
-  });
 
-const err = (status, message) => ok({ error: message }, status);
+    if (event.httpMethod === 'POST') {
+      const body = parseBody(event);
+      const newItem = { id: id(), createdAt: new Date().toISOString(), ...body };
+      items.push(newItem);
+      await saveAll(items);
+      return ok(newItem, 201);
+    }
 
-export default async (req) => {
-  if (req.method === "OPTIONS") return ok({ ok: true });
+    if (event.httpMethod === 'PUT') {
+      const body = parseBody(event);
+      const itemId = body.id || (event.queryStringParameters || {}).id;
+      if (!itemId) return error('Missing id for update', 422);
+      const idx = items.findIndex(x => x.id === itemId);
+      if (idx === -1) return error('prices: not found', 404);
+      items[idx] = { ...items[idx], ...body, id: itemId, updatedAt: new Date().toISOString() };
+      await saveAll(items);
+      return ok(items[idx]);
+    }
 
-  const store = getStore("prices");
-  const key = "prices.json";
+    if (event.httpMethod === 'DELETE') {
+      const params = event.queryStringParameters || {}
+      const itemId = params.id || parseBody(event).id;
+      if (!itemId) return error('Missing id for delete', 422);
+      const filtered = items.filter(x => x.id !== itemId);
+      if (filtered.length === items.length) return error('prices: not found', 404);
+      await saveAll(filtered);
+      return ok({ ok: true });
+    }
 
-  if (req.method === "GET") {
-    const json = await store.get(key, { type: "json" });
-    return ok(json || {});
+    return error('Method not allowed', 405);
+  } catch (e) {
+    console.error('Function prices error:', e);
+    return error('Internal error', 500);
   }
-
-  if (req.method === "POST") {
-    const tokenHeader = req.headers.get("x-admin-token") || "";
-    const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "";
-    if (!ADMIN_TOKEN || tokenHeader !== ADMIN_TOKEN) return err(401, "Unauthorized");
-
-    let incoming;
-    try { incoming = await req.json(); }
-    catch { return err(400, "Invalid JSON"); }
-
-    const existing = (await store.get(key, { type: "json" })) || {};
-    const merged = deepMerge(existing, incoming);
-    await store.setJSON(key, merged);
-    return ok({ ok: true, updated: true });
-  }
-
-  return err(405, "Method Not Allowed");
-};
-
-function deepMerge(base, add) {
-  if (Array.isArray(base) || Array.isArray(add)) return add;
-  if (typeof base !== "object" || typeof add !== "object" || !base || !add) return add;
-  const out = { ...base };
-  for (const k of Object.keys(add)) out[k] = deepMerge(base[k], add[k]);
-  return out;
 }
