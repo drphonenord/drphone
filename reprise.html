@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Reprise smartphone — Estimation instantanée | Dr Phone</title>
+  <meta name="description" content="Calculez une estimation de reprise selon le modèle, le stockage et l'état (écran, châssis, fonctions, iCloud/Google, oxydation).">
+  <style>
+    :root{--fg:#0b1220;--muted:#6b7280;--border:#e5e7eb;--brand:#2563eb;--brand2:#06b6d4;--bg:#f8fafc;--danger:#ef4444}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;color:var(--fg);background:var(--bg)}
+    .container{max-width:980px;margin:0 auto;padding:24px 16px}
+    h1{margin:0 0 8px}
+    .muted{color:var(--muted)}
+    .card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:16px;margin-top:16px}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+    label{font-weight:600;display:block;margin-bottom:6px}
+    select,input[type=text],input[type=number]{width:100%;padding:10px;border:1px solid var(--border);border-radius:12px}
+    .checkgroup{display:flex;flex-wrap:wrap;gap:10px}
+    .chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);padding:8px 10px;border-radius:999px;background:#fff}
+    .chip input{margin:0}
+    .btn{display:inline-block;border:1px solid var(--brand);background:linear-gradient(90deg,var(--brand),var(--brand2));color:#fff;padding:12px 16px;border-radius:12px;font-weight:700;cursor:pointer;text-decoration:none}
+    .btn.ghost{background:#fff;color:var(--brand)}
+    .result{display:none}
+    .price{font-size:28px;font-weight:800}
+    .danger{color:var(--danger);font-weight:700}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .hint{font-size:.9rem;color:var(--muted)}
+    @media (max-width:780px){.row,.row3,.grid2{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Reprise smartphone — estimation instantanée</h1>
+    <p class="muted">Remplis les étapes ci‑dessous. Si le compte Google/iCloud est actif ou en cas d’oxydation lourde, l’appareil n’est <b>pas</b> reprenable.</p>
+
+    <div class="card">
+      <div class="row">
+        <div>
+          <label>Marque</label>
+          <select id="brand">
+            <option>Apple</option>
+            <option>Samsung</option>
+            <option>Google</option>
+            <option>Xiaomi</option>
+            <option>Autre</option>
+          </select>
+        </div>
+        <div>
+          <label>Modèle</label>
+          <select id="model"></select>
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>Stockage (Go)</label>
+          <select id="storage"></select>
+        </div>
+        <div>
+          <label>Couleur (optionnel)</label>
+          <input id="color" type="text" placeholder="Ex. Noir, Bleu..." />
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row3">
+        <div>
+          <label>Écran</label>
+          <select id="screen">
+            <option value="ok">Comme neuf / OK</option>
+            <option value="micros">Micro‑rayures</option>
+            <option value="fissure">Fissuré (léger)</option>
+            <option value="brise">Brisé / affichage HS</option>
+          </select>
+        </div>
+        <div>
+          <label>Châssis / coque</label>
+          <select id="body">
+            <option value="ok">OK</option>
+            <option value="usure">Usure / griffes</option>
+            <option value="tordu">Tordu / fissure châssis</option>
+          </select>
+        </div>
+        <div>
+          <label>Oxydation / liquide</label>
+          <select id="water">
+            <option value="non">Non</option>
+            <option value="leger">Oui, léger</option>
+            <option value="fort">Oui, fort (oxydation)</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-top:12px">
+        <label>Fonctions avec défaut (coche si concerné)</label>
+        <div class="checkgroup">
+          <label class="chip"><input type="checkbox" class="def" value="faceid"> FaceID / TouchID</label>
+          <label class="chip"><input type="checkbox" class="def" value="battery"> Batterie faible</label>
+          <label class="chip"><input type="checkbox" class="def" value="camera"> Caméra</label>
+          <label class="chip"><input type="checkbox" class="def" value="speaker"> Haut‑parleur / micro</label>
+          <label class="chip"><input type="checkbox" class="def" value="charge"> Charge / connecteur</label>
+          <label class="chip"><input type="checkbox" class="def" value="network"> Réseau / Wi‑Fi / GPS</label>
+          <label class="chip"><input type="checkbox" class="def" value="buttons"> Boutons</label>
+          <label class="chip"><input type="checkbox" class="def" value="other"> Autre</label>
+        </div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <div>
+          <label>Compte iCloud / Google</label>
+          <select id="lock">
+            <option value="off">Supprimé / déconnecté</option>
+            <option value="on">Encore associé / verrouillé</option>
+          </select>
+          <div class="hint">Si activé : appareil non reprenable (sécurité).</div>
+        </div>
+        <div>
+          <label>Accessoires (optionnel)</label>
+          <select id="acc">
+            <option value="none">Sans accessoires</option>
+            <option value="chargeur">Chargeur / câble</option>
+            <option value="boite">Boîte + accessoires</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="grid2">
+        <div>
+          <button class="btn" id="calc">Calculer l’estimation</button>
+          <div id="warn" class="muted" style="margin-top:8px"></div>
+        </div>
+        <div class="result" id="result">
+          <div class="muted">Estimation de reprise</div>
+          <div class="price" id="price">—</div>
+          <div class="hint">Plage indicative, après test en boutique.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Recevoir une offre ferme / prendre RDV</h3>
+      <p class="muted">Envoie ta demande. On confirme par e‑mail avec le prix ferme et un créneau.</p>
+      <form name="reprise" method="POST" data-netlify="true" netlify-honeypot="bot-field">
+        <input type="hidden" name="form-name" value="reprise" />
+        <input type="hidden" name="estimation" id="field_estimation" />
+        <input type="hidden" name="resume" id="field_resume" />
+        <div style="display:none">
+          <label>Ne pas remplir si humain <input name="bot-field" /></label>
+        </div>
+        <div class="row">
+          <div><label>Nom / Prénom*</label><input required name="nom" id="nom" /></div>
+          <div><label>Téléphone*</label><input required name="tel" id="tel" /></div>
+        </div>
+        <div class="row">
+          <div><label>E‑mail*</label><input required type="email" name="email" id="email" /></div>
+          <div><label>Ville (optionnel)</label><input name="ville" id="ville" /></div>
+        </div>
+        <div class="row">
+          <div><label>Commentaire (optionnel)</label><input name="commentaire" id="commentaire" placeholder="Couleur, état précis, etc." /></div>
+          <div style="display:flex;align-items:flex-end;gap:8px">
+            <button class="btn" type="submit">Envoyer la demande</button>
+            <a class="btn ghost" href="/#rdv">Prendre RDV en ligne</a>
+          </div>
+        </div>
+        <div class="hint" style="margin-top:6px">*Champs obligatoires. Notification par e‑mail via Netlify Forms.</div>
+      </form>
+    </div>
+
+    <p class="muted" style="margin-top:10px">⚖️ L’estimation est indicative et dépend d’un contrôle visuel et fonctionnel en boutique. Les prix évoluent selon le marché.</p>
+  </div>
+
+  <script>
+  // Base prices (approx) by model & storage
+  const BASE = {
+    'Apple': {
+      'iPhone 11': {64:150,128:170,256:200},
+      'iPhone 12': {64:230,128:260,256:300},
+      'iPhone 12 Pro': {128:320,256:360,512:420},
+      'iPhone 13': {128:360,256:400,512:470},
+      'iPhone 13 Pro': {128:430,256:500,512:580,1024:650},
+      'iPhone 14': {128:460,256:520,512:600},
+      'iPhone 14 Pro': {128:570,256:650,512:740,1024:800},
+      'iPhone 15': {128:600,256:670,512:750},
+      'iPhone 15 Pro': {128:720,256:800,512:900,1024:980},
+      'Autre iPhone': {64:120,128:150,256:180,512:220}
+    },
+    'Samsung': {
+      'Galaxy S20': {128:180,256:210},
+      'Galaxy S21': {128:220,256:250},
+      'Galaxy S22': {128:280,256:320},
+      'Galaxy S23': {128:360,256:400,512:460},
+      'Galaxy S24': {128:420,256:470,512:520},
+      'Galaxy A52': {128:130,256:150},
+      'Galaxy A53': {128:150,256:170},
+      'Galaxy A54': {128:180,256:200},
+      'Autre Samsung': {64:90,128:120,256:150,512:180}
+    },
+    'Google': {
+      'Pixel 6': {128:180,256:220},
+      'Pixel 7': {128:260,256:300},
+      'Pixel 8': {128:340,256:380},
+      'Autre Pixel': {128:140,256:170,512:200}
+    },
+    'Xiaomi': {
+      'Redmi Note 10': {64:90,128:110},
+      'Redmi Note 11': {64:110,128:130},
+      'Redmi Note 12': {128:150,256:170},
+      'Autre Xiaomi': {64:70,128:90,256:110,512:140}
+    },
+    'Autre': {
+      'Modèle générique': {64:60,128:80,256:100,512:130}
+    }
+  };
+
+  const MODELS = {
+    'Apple':['iPhone 11','iPhone 12','iPhone 12 Pro','iPhone 13','iPhone 13 Pro','iPhone 14','iPhone 14 Pro','iPhone 15','iPhone 15 Pro','Autre iPhone'],
+    'Samsung':['Galaxy S20','Galaxy S21','Galaxy S22','Galaxy S23','Galaxy S24','Galaxy A52','Galaxy A53','Galaxy A54','Autre Samsung'],
+    'Google':['Pixel 6','Pixel 7','Pixel 8','Autre Pixel'],
+    'Xiaomi':['Redmi Note 10','Redmi Note 11','Redmi Note 12','Autre Xiaomi'],
+    'Autre':['Modèle générique']
+  };
+
+  const $=id=>document.getElementById(id);
+  function fillModels(){
+    const b=$('brand').value, models=MODELS[b];
+    $('model').innerHTML = models.map(m=>`<option>${m}</option>`).join('');
+    fillStorage();
+  }
+  function fillStorage(){
+    const b=$('brand').value, m=$('model').value, stor=Object.keys(BASE[b][m]).map(n=>Number(n));
+    $('storage').innerHTML = stor.map(n=>`<option value="${n}">${n} Go</option>`).join('');
+  }
+  $('brand').addEventListener('change', fillModels);
+  $('model').addEventListener('change', fillStorage);
+  fillModels();
+
+  const DEDUCS = {
+    screen:{ ok:0, micros:0.05, fissure:0.20, brise:0.50 },
+    body:  { ok:0, usure:0.05, tordu:0.15 },
+    water: { non:0, leger:0.20, fort:'n/a' },
+    lock:  { off:0, on:'n/a' },
+    defs:  { faceid:0.15, battery:0.10, camera:0.07, speaker:0.05, charge:0.08, network:0.07, buttons:0.03, other:0.05 }
+  };
+
+  function round5(x){ return Math.max(0, Math.round(x/5)*5); }
+
+  function compute(){
+    const b=$('brand').value, m=$('model').value, s=Number($('storage').value);
+    const base = (BASE[b] && BASE[b][m] && BASE[b][m][s]) ? BASE[b][m][s] : 0;
+    if(!base) return {ok:false, msg:'Modèle/stockage non référencé'};
+
+    // non reprenable ?
+    if(DEDUCS.lock[$('lock').value] === 'n/a') return {ok:true, price:0, reason:'verrouillage iCloud/Google'};
+    if(DEDUCS.water[$('water').value] === 'n/a') return {ok:true, price:0, reason:'oxydation forte'};
+
+    let perc = 0;
+    perc += DEDUCS.screen[$('screen').value] || 0;
+    perc += DEDUCS.body[$('body').value] || 0;
+    perc += DEDUCS.water[$('water').value] || 0;
+
+    document.querySelectorAll('.def:checked').forEach(cb=> perc += (DEDUCS.defs[cb.value]||0));
+
+    if(perc > 0.85) perc = 0.85; // garde un plancher
+
+    let est = base * (1 - perc);
+    // Bonus petits accessoires
+    const acc = $('acc').value;
+    if(acc==='chargeur') est += 5;
+    if(acc==='boite') est += 10;
+
+    // borne +/‑10%
+    const low = round5(est * 0.9);
+    const high = round5(est * 1.1);
+    est = round5(est);
+    return {ok:true, price:est, low, high, base};
+  }
+
+  function summary(){
+    const b=$('brand').value, m=$('model').value, s=$('storage').value+' Go';
+    const screen=$('screen').selectedOptions[0].text;
+    const body=$('body').selectedOptions[0].text;
+    const water=$('water').selectedOptions[0].text;
+    const lock=$('lock').selectedOptions[0].text;
+    const color=$('color').value||'—';
+    const acc=$('acc').selectedOptions[0].text;
+    const defs=[...document.querySelectorAll('.def:checked')].map(x=>x.parentElement.textContent.trim()).join(', ')||'—';
+    return `Modèle: ${b} ${m} ${s} | Couleur: ${color} | Écran: ${screen} | Châssis: ${body} | Défauts: ${defs} | Oxydation: ${water} | Compte: ${lock} | Accessoires: ${acc}`;
+  }
+
+  $('calc').addEventListener('click', ()=>{
+    const r = compute();
+    if(!r.ok){ $('warn').innerHTML = '<span class="danger">Complète le modèle / stockage.</span>'; return; }
+    if(r.price===0 && r.reason){
+      $('result').style.display='block';
+      $('price').innerHTML = '<span class="danger">Non reprenable</span>';
+      $('warn').innerHTML = 'Motif: '+r.reason+'. Si tu désactives le compte / répares l’oxydation, on peut réévaluer.';
+    } else {
+      $('result').style.display='block';
+      $('price').textContent = `${r.low}–${r.high} €`;
+      $('warn').textContent = `Base: ${r.base} € — estimation au vu des éléments déclarés.`;
+    }
+    // hydrate Netlify form hidden fields
+    $('field_estimation').value = $('price').textContent;
+    $('field_resume').value = summary();
+  });
+  </script>
+</body>
+</html>
