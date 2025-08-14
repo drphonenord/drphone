@@ -49,15 +49,10 @@ function setPath(tree, brand, model, storage, val) {
 }
 
 // --------- SEED compact (≈100 configs via générateurs) ----------
-/**
- * Pour limiter la taille du code, on génère les entrées par listes.
- * Chaque entrée = { brand, model, storage, baseMed }
- */
-
 function seedData() {
   const L = [];
 
-  // APPLE: iPhone 11 -> 16 Pro Max (sélection stockages)
+  // APPLE: iPhone 11 -> 16 Pro Max
   const appleBase = {
     "iPhone 11": {128: 220},
     "iPhone 11 Pro": {256: 300},
@@ -92,7 +87,7 @@ function seedData() {
   ];
   for (const [model, storage, med] of samsung) L.push({ brand: "Samsung", model, storage, baseMed: med });
 
-  // GOOGLE: Pixel 6 -> 8 Pro, 8a, 9/9 Pro si tu ajoutes plus tard
+  // GOOGLE: Pixel 6 -> 8 Pro, 8a, Fold
   const pixels = [
     ["Pixel 6", 128, 260], ["Pixel 6 Pro", 256, 330],
     ["Pixel 7", 128, 340], ["Pixel 7 Pro", 256, 420],
@@ -101,7 +96,7 @@ function seedData() {
   ];
   for (const [model, storage, med] of pixels) L.push({ brand: "Google", model, storage, baseMed: med });
 
-  // ONEPLUS: 9 -> 13 + Nord
+  // ONEPLUS
   const oneplus = [
     ["OnePlus 9", 128, 260], ["OnePlus 10 Pro", 256, 380],
     ["OnePlus 11", 256, 460], ["OnePlus 12", 256, 480],
@@ -109,7 +104,7 @@ function seedData() {
   ];
   for (const [model, storage, med] of oneplus) L.push({ brand: "OnePlus", model, storage, baseMed: med });
 
-  // XIAOMI: 12 -> 14 Ultra, 13T Pro, Redmi Note 13/13 Pro+
+  // XIAOMI
   const xiaomis = [
     ["Xiaomi 12", 256, 340], ["Xiaomi 13", 256, 420], ["Xiaomi 13 Pro", 256, 520],
     ["Xiaomi 14", 256, 520], ["Xiaomi 14 Ultra", 512, 700],
@@ -117,7 +112,7 @@ function seedData() {
   ];
   for (const [model, storage, med] of xiaomis) L.push({ brand: "Xiaomi", model, storage, baseMed: med });
 
-  // OPPO: Find X3 -> X6 Pro, Reno 8 -> 10 Pro+
+  // OPPO
   const oppo = [
     ["Find X3 Pro", 256, 400], ["Find X5 Pro", 256, 520], ["Find X6 Pro", 512, 640],
     ["Reno 8 Pro", 256, 300], ["Reno 10 Pro+", 256, 360], ["Reno 12 Pro", 256, 380]
@@ -137,7 +132,6 @@ function seedData() {
   ];
   for (const [brand, model, storage, med] of others) L.push({ brand, model, storage, baseMed: med });
 
-  // Total ≈ 100 combinaisons avec toutes les variantes ci-dessus
   return L;
 }
 
