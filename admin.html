@@ -70,7 +70,7 @@
       <div id="list" class="list"></div>
     </div>
 
-    <!-- Formulaire ticket -->
+    <!-- Formulaire ticket rapide (optionnel) -->
     <div class="card">
       <div class="row">
         <div><label>Code (laisser vide pour auto)</label><input id="code" placeholder="DRP-2025-123" /></div>
@@ -102,10 +102,9 @@
 
   <script>
     const FN='/.netlify/functions/tickets';
-    const $ = (id)=>document.getElementById(id);
+    const $=(id)=>document.getElementById(id);
     const token = localStorage.getItem('drp_admin_token') || '';
     if(token) $('token').value = token;
-
     $('saveToken').onclick = ()=>{ localStorage.setItem('drp_admin_token', $('token').value.trim()); alert('Token enregistré.'); };
 
     function fillForm(item){
@@ -121,9 +120,7 @@
     $('loadBtn').onclick = async ()=>{
       const id = $('searchCode').value.trim();
       if(!id) return;
-      const r = await fetch(FN+'?id='+encodeURIComponent(id)); const j = await r.json();
-      if(!r.ok){ alert('Introuvable'); return; }
-      fillForm(j); window.scrollTo({ top: document.body.scrollHeight/3, behavior: 'smooth' });
+      window.open('/ticket-admin.html?code='+encodeURIComponent(id),'_blank');
     };
 
     async function listTickets(query, openOnly){
@@ -135,7 +132,7 @@
       (j.items||[]).forEach(it=>{
         const d = document.createElement('div'); d.className='item';
         d.innerHTML = `<b>${it.code||''}</b> — ${it.status||''} · <span class="muted">${it.client||'—'}</span> · ${it.model||''} <span class="muted" style="float:right">${it.updated||''}</span>`;
-        d.onclick = ()=>{ fillForm(it); window.scrollTo({ top: document.body.scrollHeight/3, behavior: 'smooth' }); };
+        d.onclick = ()=> window.open('/ticket-admin.html?code='+encodeURIComponent(it.code||''), '_blank');
         list.appendChild(d);
       });
       if((j.items||[]).length===0){ list.innerHTML = '<div class="muted small">Aucun résultat.</div>'; }
@@ -149,13 +146,11 @@
     $('newBtn').onclick = async ()=>{
       const t = localStorage.getItem('drp_admin_token') || $('token').value.trim();
       if(!t){ alert('Renseigne ton token admin.'); return; }
-      // garde client/modèle pour le nouveau ticket
       const payload = { status:'Réceptionné', model:$('model').value.trim(), client:$('client').value.trim(), note:'' };
       const r = await fetch(FN, { method:'POST', headers:{'Content-Type':'application/json','x-admin-token':t}, body:JSON.stringify(payload) });
       const j = await r.json();
       if(!r.ok || !j.ok){ alert('Erreur: '+(j.error||r.status)); return; }
-      fillForm(j.item);
-      window.open('/ticket.html?code='+encodeURIComponent(j.item.code||''), '_blank');
+      window.open('/ticket-admin.html?code='+encodeURIComponent(j.item.code||''), '_blank');
     };
 
     $('saveBtn').onclick = async ()=>{
@@ -171,11 +166,10 @@
       const r = await fetch(FN, { method:'POST', headers:{'Content-Type':'application/json','x-admin-token':t}, body:JSON.stringify(payload) });
       const j = await r.json();
       if(!r.ok || !j.ok){ alert('Erreur: '+(j.error||r.status)); return; }
-      fillForm(j.item);
       alert('Enregistré.');
     };
 
-    // Liste au chargement : ouverts en premier
+    // Liste au chargement : ouverts
     $('listOpenBtn').click();
   </script>
 </body>

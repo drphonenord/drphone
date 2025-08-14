@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fiche ticket — édition admin</title>
+  <meta name="description" content="Modifier instantanément un ticket de réparation (admin).">
+  <style>
+    :root{--fg:#0b1220;--muted:#6b7280;--border:#e5e7eb;--brand:#2563eb;--brand2:#06b6d4;--bg:#f8fafc}
+    *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;color:var(--fg);background:var(--bg)}
+    .wrap{max-width:900px;margin:0 auto;padding:20px 16px}
+    .card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:16px;margin-top:16px}
+    h1{margin:0 0 6px}
+    label{display:block;font-weight:600;margin-top:10px}
+    input,select,textarea{width:100%;padding:10px;border:1px solid var(--border);border-radius:12px}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .btn{display:inline-block;border:1px solid var(--brand);background:linear-gradient(90deg,var(--brand),var(--brand2));color:#fff;padding:10px 16px;border-radius:12px;text-decoration:none;font-weight:700;cursor:pointer}
+    .btn.out{background:#fff;color:var(--brand)}
+    .muted{color:var(--muted)} .small{font-size:.9rem}
+    .flex{display:flex;gap:8px;flex-wrap:wrap}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Fiche ticket — édition admin</h1>
+    <p class="muted small">Liens utiles : 
+      <a href="#" id="linkSuivi">Suivi client</a> · 
+      <a href="#" id="linkImpr">Imprimer la fiche</a>
+    </p>
+
+    <div class="card">
+      <div class="row">
+        <div>
+          <label>Clé admin</label>
+          <input id="token" placeholder="Colle la valeur de ADMIN_TOKEN" />
+          <button class="btn out" id="saveToken" style="margin-top:8px">Enregistrer</button>
+        </div>
+        <div>
+          <label>Code</label>
+          <input id="code" readonly />
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>Statut</label>
+          <select id="status">
+            <option>Réceptionné</option>
+            <option>En diagnostic</option>
+            <option>En cours</option>
+            <option>Pièce en commande</option>
+            <option>En test</option>
+            <option>Prêt · à restituer</option>
+            <option>Restitué</option>
+          </select>
+        </div>
+        <div>
+          <label>Modèle</label>
+          <input id="model" placeholder="iPhone 13 / Galaxy S21…" />
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>Client</label>
+          <input id="client" placeholder="Nom / initiales (ex. L. Martin)" />
+        </div>
+        <div>
+          <label>Dernière MAJ</label>
+          <input id="updated" readonly />
+        </div>
+      </div>
+      <label>Note</label>
+      <textarea id="note" rows="4" placeholder="Détails utiles…"></textarea>
+      <div class="flex" style="margin-top:10px">
+        <button class="btn" id="saveBtn">Enregistrer</button>
+        <button class="btn out" id="copyLink">Copier lien suivi</button>
+        <button class="btn out" id="newSameClient">Nouveau code (même client)</button>
+      </div>
+      <div class="muted small" id="msg" style="margin-top:8px"></div>
+    </div>
+  </div>
+
+  <script>
+    const FN='/.netlify/functions/tickets';
+    const $=id=>document.getElementById(id);
+
+    // token
+    const tk = localStorage.getItem('drp_admin_token') || '';
+    if(tk) $('token').value = tk;
+    $('saveToken').onclick = ()=>{ localStorage.setItem('drp_admin_token', $('token').value.trim()); msg('Token enregistré.'); };
+
+    // code from query
+    const params = new URLSearchParams(location.search);
+    const code = params.get('code') || (location.hash||'').replace('#','');
+    $('code').value = code || '';
+
+    $('linkSuivi').href = '/suivi.html#'+encodeURIComponent(code||'');
+    $('linkImpr').href = '/ticket.html?code='+encodeURIComponent(code||'');
+    $('linkImpr').target = '_blank';
+
+    function msg(t){ $('msg').textContent = t; setTimeout(()=>{ $('msg').textContent=''; }, 1500); }
+
+    async function load(){
+      if(!code) return;
+      const r = await fetch(FN+'?id='+encodeURIComponent(code));
+      if(!r.ok){ msg('Ticket introuvable.'); return; }
+      const t = await r.json();
+      $('status').value = t.status||'Réceptionné';
+      $('model').value  = t.model||'';
+      $('client').value = t.client||'';
+      $('note').value   = t.note||'';
+      $('updated').value= t.updated||'';
+    }
+
+    $('saveBtn').onclick = async ()=>{
+      const token = localStorage.getItem('drp_admin_token') || $('token').value.trim();
+      if(!token){ alert('Renseigne ta clé admin.'); return; }
+      const payload = {
+        code: $('code').value.trim(),
+        status: $('status').value,
+        model: $('model').value.trim(),
+        client: $('client').value.trim(),
+        note: $('note').value.trim()
+      };
+      const r = await fetch(FN, { method:'POST', headers:{'Content-Type':'application/json','x-admin-token':token}, body: JSON.stringify(payload)});
+      const j = await r.json();
+      if(!r.ok || !j.ok){ alert('Erreur: '+(j.error||r.status)); return; }
+      $('updated').value = j.item.updated||'';
+      msg('Enregistré ✅');
+    };
+
+    $('copyLink').onclick = async ()=>{
+      const link = location.origin + '/suivi.html#' + encodeURIComponent($('code').value);
+      await navigator.clipboard.writeText(link).catch(()=>{});
+      msg('Lien copié 📋');
+    };
+
+    $('newSameClient').onclick = async ()=>{
+      const token = localStorage.getItem('drp_admin_token') || $('token').value.trim();
+      if(!token){ alert('Renseigne ta clé admin.'); return; }
+      const payload = { status:'Réceptionné', model:$('model').value.trim(), client:$('client').value.trim(), note:'' };
+      const r = await fetch(FN, { method:'POST', headers:{'Content-Type':'application/json','x-admin-token':token}, body: JSON.stringify(payload)});
+      const j = await r.json();
+      if(!r.ok || !j.ok){ alert('Erreur: '+(j.error||r.status)); return; }
+      window.open('/ticket-admin.html?code='+encodeURIComponent(j.item.code||''), '_blank');
+    };
+
+    load();
+  </script>
+</body>
+</html>
