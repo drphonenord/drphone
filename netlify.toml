@@ -2,7 +2,6 @@
   publish = "."
   functions = "netlify/functions"
 
-# CORS pour les fonctions
 [[headers]]
   for = "/.netlify/functions/*"
   [headers.values]
@@ -11,7 +10,6 @@
     Access-Control-Allow-Headers = "Content-Type, Authorization, x-admin-token"
     Cache-Control = "no-store"
 
-# Raccourcis utiles
 [[redirects]]
   from = "/admin"
   to = "/admin.html"
@@ -21,6 +19,3 @@
   from = "/admin/"
   to = "/admin.html"
   status = 200
-
-# (Tu peux garder ta règle existante)
-# /rachat -> /reprise
