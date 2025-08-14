@@ -1,7 +1,7 @@
 import { getStore } from '@netlify/blobs';
-import { corsHeaders, res, isWrite, ok204 } from './_common.js';
+import { res, isWrite, ok204 } from './_common.js';
 
-const STORE = getStore({ name: 'drphone' });
+const STORE = getStore({ name: 'drphone', siteID: process.env.NETLIFY_BLOBS_SITE_ID, token: process.env.NETLIFY_BLOBS_TOKEN });
 const KEY = 'clients';
 
 export async function handler(event){

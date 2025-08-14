@@ -1,34 +1,28 @@
-# Dr Phone — Admin complet (GitHub → Netlify)
+# Dr Phone — Admin complet (Hotfix Blobs)
 
-## Installation (UI only)
-### 1) GitHub
-- Dézippe ce projet.
-- Dans ton repo GitHub → **Add file → Upload files** → uploade **tout le contenu à la racine** (dossiers `admin`, `netlify`, `public`, plus `netlify.toml`, etc.).
-- **Commit**.
-
-### 2) Netlify
-- **Add new site → Import an existing project → GitHub** → choisis le repo.
-- Build command : *(vide)*
-- Publish directory : `public`
-- Functions directory : `netlify/functions`
-- **Deploy**.
-
-### 3) Variables d’environnement
-- Netlify → **Site settings → Environment variables**
-  - `ADMIN_TOKEN = <ta_clé>` → **Save**
-- **Deploys → Trigger deploy → Deploy site** (pour prendre en compte l’ENV).
+## Installation rapide (UI)
+1) GitHub → **Upload** ce dossier (racine).  
+2) Netlify → **Import from GitHub**  
+   - Build: *(vide)*  
+   - Publish dir: `public`  
+   - Functions dir: `netlify/functions`  
+3) Netlify → **Site settings → Environment variables**  
+   - `ADMIN_TOKEN = <ta_clé>` → Save  
+   - (Optionnel si Blobs pas activé) `NETLIFY_BLOBS_SITE_ID`, `NETLIFY_BLOBS_TOKEN`  
+4) **Deploys → Trigger deploy → Deploy site** (ou *Clear cache and deploy site*).
 
 ## Admin
-- Ouvre `/admin/dashboard.html` → colle ton `ADMIN_TOKEN` → Enregistrer.
-- Onglets : **Clients**, **Réparations**, **Prix**.
-- L’UI envoie automatiquement `x-admin-token` pour les méthodes non-GET.
+`/admin/dashboard.html` → colle le `ADMIN_TOKEN` → Enregistrer.
 
-## API (fonctions)
+## API
 - `/.netlify/functions/clients` (GET, POST)
 - `/.netlify/functions/repairs` (GET, POST)
 - `/.netlify/functions/prices_states` (GET, PUT)
-Toutes les méthodes **non-GET** exigent `x-admin-token: <ADMIN_TOKEN>`.
 
-## Données
-- Stockées dans **Netlify Blobs** (store `drphone`).
-- Seeds initiales chargées au premier appel si vide.
+## Hotfix Blobs
+**Option A (recommandé)** : activer **Storage → Blobs** sur le site Netlify puis *Clear cache and deploy site*.
+**Option B** : variables d'env manuelles :
+- `NETLIFY_BLOBS_SITE_ID` = *Site ID* (Site settings → General → Site details)
+- `NETLIFY_BLOBS_TOKEN` = *Personal access token* (User settings → Applications → Personal access tokens)
+
+Le code des fonctions utilise automatiquement `getStore({ name, siteID, token })` si ces variables sont présentes.
