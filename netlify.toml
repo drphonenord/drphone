@@ -22,3 +22,12 @@
 [functions]
   node_bundler = "esbuild"
   external_node_modules = ["@netlify/blobs"]
+[[redirects]]
+from = "/rachat"
+to = "/reprise.html"
+status = 301
+
+[[redirects]]
+from = "/rachat.html"
+to = "/reprise.html"
+status = 301
